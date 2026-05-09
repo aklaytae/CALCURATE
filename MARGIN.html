@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSB Loan Analysis - Full Results</title>
+    <style>
+        :root { --primary: #0056b3; --bg: #f4f7fa; --gsb-pink: #eb008b; --light-pink: #fff5fa; }
+        body { font-family: 'Sarabun', sans-serif, Arial; background-color: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .container { background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        
+        .section { padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #eee; }
+        .section-income { background: var(--light-pink); border-color: #ffc1e3; }
+        .section-debt { background: #f0f7ff; border-color: #b3d7ff; }
+        .section-title { display: block; margin-bottom: 12px; color: var(--primary); font-size: 15px; font-weight: bold; }
+        .pink-t { color: var(--gsb-pink); }
+
+        h2 { color: var(--primary); text-align: center; margin-bottom: 20px; font-size: 22px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #444; font-size: 13px; }
+        input { 
+            width: 100%; padding: 10px 12px; border: 2px solid #eee; border-radius: 8px; 
+            box-sizing: border-box; font-size: 15px; transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+        input[readonly] { background: rgba(255,255,255,0.5); border-style: dashed; }
+
+        .result-box { 
+            margin-top: 10px; padding: 15px; background: #2c3e50; border-radius: 10px; color: #fff;
+        }
+        .ri-container {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #555;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+        .res-item { border: 1px solid #444; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); }
+        .full-w { grid-column: 1 / span 2; }
+        
+        .label-text { font-size: 11px; color: #bdc3c7; display: block; margin-bottom: 5px; }
+        .value-text { font-size: 24px; color: #00d4ff; font-weight: bold; }
+        .sub-value { font-size: 18px; font-weight: bold; }
+        .highlight-yellow { color: #f1c40f; }
+        .highlight-pink { color: #ff85c0; }
+        
+        .pass { color: #2ecc71 !important; } 
+        .fail { color: #e74c3c !important; } 
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>วิเคราะห์สินเชื่อฉบับเต็ม</h2>
+
+    <div class="section section-income">
+        <span class="section-title pink-t">👤 รายได้สุทธิ</span>
+        <div class="form-group">
+            <label>รายได้ (Salary)</label>
+            <input type="text" id="Salary" placeholder="0" oninput="formatInput(this); updateAll();">
+        </div>
+        <div class="form-group">
+            <label>รายการหัก (Cut)</label>
+            <input type="text" id="Cut" placeholder="0" oninput="formatInput(this); updateAll();">
+        </div>
+        <div class="form-group">
+            <label>รายได้หลังหัก (Summary)</label>
+            <input type="text" id="Summary" value="0" readonly>
+        </div>
+    </div>
+
+    <div class="section section-debt">
+        <span class="section-title">💳 ภาระหนี้ต่อเดือน</span>
+        <div class="form-group">
+            <label>ค่างวดหนี้ครั้งนี้</label>
+            <input type="text" id="DebtNew" placeholder="0" oninput="formatInput(this); updateAll();">
+        </div>
+        <div class="form-group">
+            <label>หนี้เดิม GSB</label>
+            <input type="text" id="DebtGSB" placeholder="0" oninput="formatInput(this); updateAll();">
+        </div>
+        <div class="form-group">
+            <label>หนี้เดิม NCB</label>
+            <input type="text" id="DebtNCB" placeholder="0" oninput="formatInput(this); updateAll();">
+        </div>
+        <div class="form-group">
+            <label>หนี้เดิม นอกระบบ</label>
+            <input type="text" id="DebtNonNCB" placeholder="0" oninput="formatInput(this); updateAll();">
+        </div>
+        <div class="form-group">
+            <label>Refinance / หนี้ที่ปิด (ลบออก)</label>
+            <input type="text" id="Refinance" placeholder="0" oninput="formatInput(this); updateAll();" style="border-color: #ffc107;">
+        </div>
+    </div>
+
+    <div class="result-box">
+        <div class="ri-container">
+            <span class="label-text">RI (เงินคงเหลือหลังหักหนี้ทั้งหมด)</span>
+            <span class="value-text" id="res_ri">0.00</span>
+            <div id="ri_status" style="font-size: 11px; margin-top: 5px; color: #bdc3c7;">รอข้อมูล...</div>
+        </div>
+
+        <div class="res-grid">
+            <!-- เพิ่มช่องค่าใช้จ่ายอุปโภคบริโภค -->
+            <div class="res-item full-w">
+                <span class="label-text">ค่าใช้จ่ายอุปโภคบริโภค (Living Expense)</span>
+                <span class="sub-value highlight-pink" id="res_expense">0.00</span>
+            </div>
+
+            <div class="res-item">
+                <span class="label-text">DTI (%)</span>
+                <span class="sub-value highlight-yellow" id="res_dti">0.00</span>
+            </div>
+            <div class="res-item">
+                <span class="label-text">DSCR (เท่า)</span>
+                <span class="sub-value highlight-yellow" id="res_dscr">0.000</span>
+            </div>
+            <div class="res-item full-w">
+                <span class="label-text">หนี้รวมสุทธิ (Debt)</span>
+                <span class="sub-value" id="res_total_debt" style="color: #ff7675;">0.00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function formatInput(input) {
+        let value = input.value.replace(/,/g, '');
+        if(!isNaN(value) && value !== "") {
+            input.value = Number(value).toLocaleString();
+        }
+    }
+
+    function getRawValue(id) {
+        return parseFloat(document.getElementById(id).value.replace(/,/g, '')) || 0;
+    }
+
+    function updateAll() {
+        const salary = getRawValue("Salary");
+        const cut = getRawValue("Cut");
+        const summary = salary - cut;
+        document.getElementById("Summary").value = summary.toLocaleString();
+
+        const dNew = getRawValue("DebtNew");
+        const dGSB = getRawValue("DebtGSB");
+        const dNCB = getRawValue("DebtNCB");
+        const dNonNCB = getRawValue("DebtNonNCB");
+        const refi = getRawValue("Refinance");
+        const totalDebt = (dNew + dGSB + dNCB + dNonNCB) - refi;
+
+        // คำนวณ % ค่าใช้จ่ายตามเกณฑ์ Summary
+        let rate = 0;
+        if (summary > 0) {
+            if (summary < 15000) rate = 0.3;
+            else if (summary < 100000) rate = 0.25;
+            else rate = 0.2;
+        }
+        const expense = summary * rate;
+
+        const ri = summary - totalDebt;
+        const dti = (salary > 0) ? (totalDebt / salary) * 100 : 0;
+        const dscr = (totalDebt > 0) ? (summary - expense) / totalDebt : 0;
+
+        // แสดงผล RI
+        const riElem = document.getElementById("res_ri");
+        const riStatus = document.getElementById("ri_status");
+        riElem.innerText = ri.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        if (salary === 0) {
+            riElem.className = "value-text";
+            riStatus.innerText = "รอข้อมูลรายได้";
+        } else if (salary <= 15000) {
+            if (ri >= 2000) { riElem.className = "value-text pass"; riStatus.innerText = "ผ่าน (Salary ≤ 15k, RI ≥ 2k)"; }
+            else { riElem.className = "value-text fail"; riStatus.innerText = "ไม่ผ่าน (ขาดอีก " + (2000-ri).toLocaleString() + ")"; }
+        } else {
+            if (ri >= 5000) { riElem.className = "value-text pass"; riStatus.innerText = "ผ่าน (Salary > 15k, RI ≥ 5k)"; }
+            else { riElem.className = "value-text fail"; riStatus.innerText = "ไม่ผ่าน (ขาดอีก " + (5000-ri).toLocaleString() + ")"; }
+        }
+
+        // แสดงค่าใช้จ่ายอุปโภคบริโภค
+        document.getElementById("res_expense").innerText = expense.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        // แสดงผลอื่นๆ
+        document.getElementById("res_total_debt").innerText = (totalDebt > 0 ? totalDebt : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById("res_dti").innerText = dti.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById("res_dscr").innerText = dscr.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3});
+    }
+</script>
+
+</body>
+</html>
