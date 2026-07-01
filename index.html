@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Calculator with Quick Links</title>
+    <style>
+        :root { --primary: #0056b3; --bg: #f4f7fa; --gsb-pink: #eb008b; }
+        body { font-family: 'Sarabun', sans-serif, Arial; background-color: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .container { background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        
+        .header-links { 
+            background: #fff5fa; padding: 15px; border-radius: 10px; 
+            margin-bottom: 25px; border: 1px dashed var(--gsb-pink);
+        }
+        .header-links b { display: block; margin-bottom: 10px; color: var(--gsb-pink); font-size: 14px; }
+        .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .header-links a { 
+            display: flex; align-items: center; text-decoration: none; 
+            color: #444; font-size: 13px; transition: 0.2s; padding: 5px; border-radius: 5px;
+        }
+        .header-links a:hover { background: #ffe0f0; color: var(--gsb-pink); }
+
+        h2 { color: var(--primary); text-align: center; margin: 0 0 20px 0; font-size: 22px; }
+        
+        /* สไตล์สำหรับปุ่มเลือกด่วน */
+        .quick-select { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-type { 
+            flex: 1; padding: 8px; border: 1px solid var(--gsb-pink); border-radius: 20px; 
+            background: #fff; color: var(--gsb-pink); cursor: pointer; font-size: 13px; font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn-type:hover { background: var(--gsb-pink); color: #fff; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #444; font-size: 14px; }
+        input { 
+            width: 100%; padding: 10px; border: 2px solid #eee; border-radius: 8px; 
+            box-sizing: border-box; font-size: 16px; transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #f0f7ff; }
+        
+        button.main-calc { 
+            width: 100%; padding: 12px; background: var(--primary); color: #fff; 
+            border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+        button.main-calc:hover { background: #004494; }
+
+        .result-box { 
+            margin-top: 20px; padding: 15px; background: #f8f9ff; border-radius: 10px; 
+            border-left: 5px solid var(--primary); display: none;
+        }
+        .result-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 16px; }
+        .val { color: #d32f2f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-links">
+        <b>🔗 ลิงค์ด่วนระบบงาน</b>
+        <div class="link-grid">
+            <a href="http://gsnet.gsb/home" target="_blank">GSB INTRANET</a>
+            <a href="https://lops.gsb/" target="_blank">LOPS</a>
+            <a href="https://www.ilovepdf.com/" target="_blank">I LOVE PDF</a>
+            <a href="https://cbsweb.gsb.or.th/WebCSR-cbsprod/logoffAllSession.do" target="_blank">CBS (IE Only)</a>
+            <a href="https://ccps.gsb/gsb-ccps-ui/login.xhtml" target="_blank">CCPS</a>
+            <a href="https://crs.gsb.or.th/auth/login" target="_blank">CRAS</a>
+            <a href="https://outlook.cloud.microsoft/mail/" target="_blank">GSB MAIL</a>
+            <a href="https://cardmweb.gsb:8443/cardm/">CARD M</a>
+            <a href="http://192.168.220.220/gsb" target="_blank">ทิพย์ภัย</a>
+            <a href="http://192.168.224.207/dla.net" target="_blank">ทิพย์ชีวิต</a>
+            <a href="https://ledwebsite.led.go.th/ledweb/led/web/system/WEB1I010Action.do" target="_blank">บุคคลล้มละลาย</a>
+            <a href="https://amlwebsearch.gsb.or.th:8443/gsbwebsearch/" target="_blank">AML Web Search</a>
+            <a href="https://apps.powerapps.com/play/e/default-4eb5f993-0bba-46eb-831a-3b7a9b4cde85/a/f35c7106-a378-4af3-90e5-d9504a00300b" target="_blank">หนี้สูญนอกระบบ CBS</a>
+			<a href="https://ratchakitcha.soc.go.th/#search4" target="_blank">ราชกิจจานุเบกษา</a>
+            <a href="https://cbsreport.gsb.or.th/repprod/Index.do" target="_blank">REPORTSERVER</a>
+            <a href="https://assessprice.treasury.go.th/" target="_blank">ราคาประเมินที่ดิน</a>
+	    	<a href="MARGIN.html" target="_blank">MARGIN</a>
+			<a href="MLTA.html" target="_blank">MRTA+</a>
+			<a href="vocab.html" target="_blank">VOCAB</a>
+			<a href="https://pdf-to-excel-z93q.onrender.com" target="_blank">STATEMENT TO EXCEL</a>
+			<a href="https://data-portal-u5jb.onrender.com" target="_blank">DATA PORTAL</a>
+			<a href="https://recallpicture-data-portal.onrender.com" target="_blank">PIC OF DATA PORTAL</a>
+        </div>
+    </div>
+
+    <h2>คำนวณสินเชื่อ</h2>
+
+    <div class="quick-select">
+        <button type="button" class="btn-type" onclick="setHousingRate()">เคหะ (5.795%)</button>
+        <button type="button" class="btn-type" onclick="setHometomoneyRate()">บ้านแลกเงิน(6.295%)</button>
+        <button type="button" class="btn-type" onclick="setSawadRate()">สวัสดิการ(7.295%)</button>
+    </div>
+    
+    <div class="form-group">
+        <label>วงเงินกู้ (บาท)</label>
+        <input type="text" id="CreditLine" placeholder="0" oninput="formatInput(this)">
+    </div>
+
+    <div class="form-group">
+        <label>อัตราดอกเบี้ยต่อปี (%)</label>
+        <input type="number" id="Rate" step="0.001" placeholder="0.000">
+    </div>
+
+    <div class="form-group">
+        <label>ระยะเวลาผ่อน (เดือน)</label>
+        <input type="text" id="Period" placeholder="0" oninput="formatInput(this)">
+    </div>
+
+    <button class="main-calc" onclick="Calculate()">คำนวณผลลัพธ์</button>
+
+    <div id="resultArea" class="result-box">
+        <div class="result-item">
+            <span>ยอดผ่อนต่อเดือน:</span>
+            <span class="val">฿ <span id="res_payment">0.00</span></span>
+        </div>
+        <div class="result-item">
+            <span>รายได้ขั้นต่ำที่ควรมี (40% DSR):</span>
+            <span class="val">฿ <span id="res_income">0.00</span></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ฟังก์ชันตั้งค่าดอกเบี้ยเคหะ
+    function setHousingRate() {
+        document.getElementById("Rate").value = 5.795;
+    }
+
+    function setHometomoneyRate() {
+        document.getElementById("Rate").value = 6.295;
+    }
+    function setSawadRate() {
+        document.getElementById("Rate").value = 7.295;
+    }
+
+    function formatInput(input) {
+        let value = input.value.replace(/,/g, '');
+        if(!isNaN(value) && value !== "") {
+            input.value = Number(value).toLocaleString();
+        }
+    }
+
+    function getRawValue(id) {
+        return parseFloat(document.getElementById(id).value.replace(/,/g, '')) || 0;
+    }
+
+    function Calculate() {
+        const credit = getRawValue("CreditLine");
+        const rate = parseFloat(document.getElementById("Rate").value) || 0;
+        const period = getRawValue("Period");
+
+        if (credit > 0 && rate > 0 && period > 0) {
+            const monthlyRate = (rate / 12) / 100;
+            // สูตรคำนวณยอดผ่อนรายเดือนแบบลดต้นลดดอก (PMT)
+            const payment = (credit * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -period));
+            // คำนวณรายได้ขั้นต่ำโดยอิงจากภาระหนี้ไม่เกิน 40% ของรายได้
+            const minIncome = (payment * 100) / 40;
+
+            document.getElementById("res_payment").innerText = payment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById("res_income").innerText = minIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById("resultArea").style.display = "block";
+        } else {
+            alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        }
+    }
+</script>
+
+</body>
+</html>
