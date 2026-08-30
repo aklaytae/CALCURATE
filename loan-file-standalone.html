@@ -132,15 +132,25 @@
     <h2>1) เริ่มต้นใช้งาน</h2>
     <p>นำเข้าไฟล์ LIMIT.xlsx (ข้อมูลแฟ้มทั้งหมด) และถ้าเคยใช้งานมาก่อน ให้นำเข้าไฟล์ข้อมูลการยืมที่ export ไว้ครั้งล่าสุดด้วย เพื่อกู้สถานะยืม-คืนกลับมา</p>
     <div class="setup-actions">
+      <button class="btn blue-outline icon" id="githubSyncBtn" onclick="syncFromGitHub()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
+        ซิงค์ LIMIT.xlsx จาก GitHub
+      </button>
+
+      <button class="btn blue-outline icon" id="githubRestoreBtn" onclick="restoreFromGitHub()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
+        กู้คืนข้อมูลการยืมจาก GitHub (rent.xlsx)
+      </button>
+
       <button class="btn primary icon" onclick="document.getElementById('masterFileInput').click()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-        นำเข้า LIMIT.xlsx
+        นำเข้า LIMIT.xlsx (จากเครื่อง)
       </button>
       <input type="file" id="masterFileInput" accept=".xlsx,.xls" style="display:none;">
 
       <button class="btn blue-outline icon" onclick="document.getElementById('restoreFileInput').click()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
-        นำเข้าข้อมูลการยืมเดิม (กู้คืน)
+        นำเข้าข้อมูลการยืมเดิม (จากเครื่อง)
       </button>
       <input type="file" id="restoreFileInput" accept=".xlsx,.xls" style="display:none;">
 
@@ -270,7 +280,40 @@ function showBanner(text, type){
   el.style.display = 'flex';
 }
 
-// ===== Import LIMIT.xlsx (master data) =====
+// ===== Shared: apply parsed rows to masterFiles (upsert by ACC) =====
+function applyMasterRows(rows){
+  const byAcc = {};
+  masterFiles.forEach(f=> byAcc[f.acc] = f);
+  let updated = 0, added = 0;
+
+  rows.forEach(row=>{
+    if(row.ACC === undefined || row.ACC === '') return;
+    const acc = cleanAcc(row.ACC);
+    const name = String(row.KANK || row.NAME || '').trim();
+    const balance = parseFloat(row.ALLBALANCE) || 0;
+    const contractDate = parseAnyDate(row['NO.']) || parseAnyDate(row.NO);
+
+    if(byAcc[acc]){
+      byAcc[acc].name = name || byAcc[acc].name;
+      byAcc[acc].balance = balance;
+      if(contractDate) byAcc[acc].contractDate = contractDate;
+      updated++;
+    } else {
+      const nf = {acc, name, balance, contractDate: contractDate || today};
+      masterFiles.push(nf);
+      byAcc[acc] = nf;
+      added++;
+    }
+  });
+
+  masterLoaded = true;
+  document.getElementById('statsWrap').style.display = 'grid';
+  document.getElementById('toolbarWrap').style.display = 'flex';
+  document.getElementById('exportBtn').disabled = false;
+  return {updated, added};
+}
+
+// ===== Import LIMIT.xlsx from local file =====
 document.getElementById('masterFileInput').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -280,37 +323,9 @@ document.getElementById('masterFileInput').addEventListener('change', function(e
       const wb = XLSX.read(evt.target.result, {type:'array'});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
-
-      const byAcc = {};
-      masterFiles.forEach(f=> byAcc[f.acc] = f);
-      let updated = 0, added = 0;
-
-      rows.forEach(row=>{
-        if(row.ACC === undefined || row.ACC === '') return;
-        const acc = cleanAcc(row.ACC);
-        const name = String(row.KANK || row.NAME || '').trim();
-        const balance = parseFloat(row.ALLBALANCE) || 0;
-        const contractDate = parseAnyDate(row['NO.']) || parseAnyDate(row.NO);
-
-        if(byAcc[acc]){
-          byAcc[acc].name = name || byAcc[acc].name;
-          byAcc[acc].balance = balance;
-          if(contractDate) byAcc[acc].contractDate = contractDate;
-          updated++;
-        } else {
-          const nf = {acc, name, balance, contractDate: contractDate || today};
-          masterFiles.push(nf);
-          byAcc[acc] = nf;
-          added++;
-        }
-      });
-
-      masterLoaded = true;
-      document.getElementById('statsWrap').style.display = 'grid';
-      document.getElementById('toolbarWrap').style.display = 'flex';
-      document.getElementById('exportBtn').disabled = false;
+      const {updated, added} = applyMasterRows(rows);
       showBanner('นำเข้า LIMIT.xlsx สำเร็จ — อัปเดต '+updated+' รายการ, เพิ่มใหม่ '+added+' รายการ (สถานะยืม-คืนที่มีอยู่ไม่ถูกแตะต้อง)', 'success');
-      markDirty(isDirty); // refresh label
+      markDirty(isDirty);
       render();
     } catch(err){
       showBanner('นำเข้าไฟล์ไม่สำเร็จ: ไฟล์ไม่ถูกต้องหรือรูปแบบคอลัมน์ไม่ตรง (ต้องมีคอลัมน์ ACC, KANK, ALLBALANCE, NO.)', 'error');
@@ -320,7 +335,55 @@ document.getElementById('masterFileInput').addEventListener('change', function(e
   reader.readAsArrayBuffer(file);
 });
 
-// ===== Import previously-exported borrow records (restore) =====
+// ===== Sync LIMIT.xlsx directly from GitHub (public raw file) =====
+const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/aklaytae/data-portal/main/backend/limit.xlsx';
+
+async function syncFromGitHub(){
+  const btn = document.getElementById('githubSyncBtn');
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = 'กำลังดึงข้อมูล...';
+  try{
+    const res = await fetch(GITHUB_RAW_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const buffer = await res.arrayBuffer();
+    const wb = XLSX.read(buffer, {type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+    const {updated, added} = applyMasterRows(rows);
+    showBanner('ซิงค์จาก GitHub สำเร็จ — อัปเดต '+updated+' รายการ, เพิ่มใหม่ '+added+' รายการ (สถานะยืม-คืนที่มีอยู่ไม่ถูกแตะต้อง)', 'success');
+    markDirty(isDirty);
+    render();
+  } catch(err){
+    showBanner('ซิงค์จาก GitHub ไม่สำเร็จ: '+err.message+' — ลองใช้ปุ่ม "นำเข้า LIMIT.xlsx (จากเครื่อง)" แทน', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = originalHtml;
+}
+
+// ===== Shared: apply parsed rows as borrow records (restore) =====
+function applyRestoreRows(rows){
+  let restored = 0;
+  rows.forEach(row=>{
+    const acc = cleanAcc(row['ACC'] ?? row['เลขบัญชี'] ?? '');
+    if(!acc) return;
+    const borrower = String(row['ผู้ยืม'] ?? '').trim();
+    const borrowDate = parseAnyDate(row['วันที่ยืม']);
+    const dueDate = parseAnyDate(row['กำหนดคืน']);
+    const returnDate = parseAnyDate(row['วันที่คืนจริง']);
+    if(!borrower || !borrowDate || !dueDate) return;
+
+    borrowRecords.push({
+      id: nextRecordId++,
+      acc, borrower, borrowDate, dueDate, returnDate,
+      status: returnDate ? 'returned' : 'borrowed'
+    });
+    restored++;
+  });
+  return restored;
+}
+
+// ===== Import previously-exported borrow records from local file (restore) =====
 document.getElementById('restoreFileInput').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -330,25 +393,7 @@ document.getElementById('restoreFileInput').addEventListener('change', function(
       const wb = XLSX.read(evt.target.result, {type:'array'});
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
-
-      let restored = 0;
-      rows.forEach(row=>{
-        const acc = cleanAcc(row['ACC'] ?? row['เลขบัญชี'] ?? '');
-        if(!acc) return;
-        const borrower = String(row['ผู้ยืม'] ?? '').trim();
-        const borrowDate = parseAnyDate(row['วันที่ยืม']);
-        const dueDate = parseAnyDate(row['กำหนดคืน']);
-        const returnDate = parseAnyDate(row['วันที่คืนจริง']);
-        if(!borrower || !borrowDate || !dueDate) return;
-
-        borrowRecords.push({
-          id: nextRecordId++,
-          acc, borrower, borrowDate, dueDate, returnDate,
-          status: returnDate ? 'returned' : 'borrowed'
-        });
-        restored++;
-      });
-
+      const restored = applyRestoreRows(rows);
       showBanner('กู้คืนข้อมูลการยืมสำเร็จ — โหลดประวัติ '+restored+' รายการ', 'success');
       markDirty(false);
       render();
@@ -359,6 +404,32 @@ document.getElementById('restoreFileInput').addEventListener('change', function(
   };
   reader.readAsArrayBuffer(file);
 });
+
+// ===== Restore borrow records directly from GitHub (rent.xlsx = last exported file, re-uploaded manually) =====
+const GITHUB_RENT_URL = 'https://raw.githubusercontent.com/aklaytae/data-portal/main/backend/rent.xlsx';
+
+async function restoreFromGitHub(){
+  const btn = document.getElementById('githubRestoreBtn');
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = 'กำลังดึงข้อมูล...';
+  try{
+    const res = await fetch(GITHUB_RENT_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const buffer = await res.arrayBuffer();
+    const wb = XLSX.read(buffer, {type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+    const restored = applyRestoreRows(rows);
+    showBanner('กู้คืนข้อมูลการยืมจาก GitHub สำเร็จ — โหลดประวัติ '+restored+' รายการ', 'success');
+    markDirty(false);
+    render();
+  } catch(err){
+    showBanner('กู้คืนจาก GitHub ไม่สำเร็จ: '+err.message+' — ลองใช้ปุ่ม "นำเข้าข้อมูลการยืมเดิม (จากเครื่อง)" แทน', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = originalHtml;
+}
 
 // ===== Export borrow records =====
 function exportBorrowRecords(){
@@ -377,10 +448,9 @@ function exportBorrowRecords(){
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'BorrowRecords');
-  const stamp = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
-  XLSX.writeFile(wb, 'ข้อมูลการยืมแฟ้ม_'+stamp+'.xlsx');
+  XLSX.writeFile(wb, 'rent.xlsx');
   markDirty(false);
-  showBanner('Export สำเร็จ — เก็บไฟล์นี้ไว้ แล้วนำเข้ากลับมาในครั้งถัดไปด้วยปุ่ม "นำเข้าข้อมูลการยืมเดิม"', 'success');
+  showBanner('Export สำเร็จ (ไฟล์ rent.xlsx) — อย่าลืมอัปโหลดไฟล์นี้กลับไปที่ GitHub ทับไฟล์เดิมใน backend/rent.xlsx เพื่อให้ปุ่ม "กู้คืนจาก GitHub" ใช้ข้อมูลล่าสุดครั้งหน้า', 'success');
 }
 
 // ===== Status / render =====
