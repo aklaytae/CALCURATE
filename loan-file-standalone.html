@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบยืม-คืนแฟ้มสินเชื่อ (ไม่มีเซิร์ฟเวอร์)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1E3A4C; --ink-dark:#142834; --paper:#EEF2F1; --surface:#FFFFFF;
+    --border:#DCE2E0; --border-strong:#C3CCC9;
+    --text-primary:#1C2B33; --text-secondary:#5B6B72; --text-muted:#8B989D;
+    --amber-bg:#FBF1DE; --amber-tab:#C68A2E; --amber-text:#6B4712;
+    --green-bg:#E4F3EA; --green-tab:#2E7D53; --green-text:#1D5B3B;
+    --red-bg:#FBE6E3; --red-tab:#B23A2E; --red-text:#7A241C;
+    --blue-bg:#E5EEF5; --blue-tab:#2E5D8A; --blue-text:#1D3F5E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Sarabun',sans-serif;background:var(--paper);color:var(--text-primary);}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .app{max-width:1080px;margin:0 auto;padding:28px 24px 60px;}
+  .header{background:var(--ink);border-radius:14px;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;color:#fff;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+  .header-left{display:flex;align-items:center;gap:14px;}
+  .header-badge{width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .header-badge svg{width:22px;height:22px;}
+  .header h1{font-size:19px;font-weight:600;margin:0;}
+  .header p{font-size:13px;margin:2px 0 0;color:rgba(255,255,255,0.65);font-weight:400;}
+  .header-meta{text-align:right;font-size:12.5px;color:rgba(255,255,255,0.6);line-height:1.6;}
+  .header-meta b{color:#fff;font-weight:500;}
+
+  .setup-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:20px;}
+  .setup-card h2{font-size:15px;margin:0 0 4px;font-weight:600;}
+  .setup-card p{font-size:13px;color:var(--text-secondary);margin:0 0 14px;}
+  .setup-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+  .banner{border-radius:10px;padding:11px 16px;font-size:13.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .banner.success{background:var(--green-bg);color:var(--green-text);}
+  .banner.error{background:var(--red-bg);color:var(--red-text);}
+  .banner.warn{background:var(--amber-bg);color:var(--amber-text);}
+  .banner svg{width:16px;height:16px;flex-shrink:0;}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+  .stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;}
+  .stat-card.available::before{background:var(--green-tab);}
+  .stat-card.borrowed::before{background:var(--amber-tab);}
+  .stat-card.overdue::before{background:var(--red-tab);}
+  .stat-num{font-size:26px;font-weight:600;margin-bottom:2px;}
+  .stat-label{font-size:13px;color:var(--text-secondary);}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .search-wrap{flex:1;min-width:220px;position:relative;}
+  .search-wrap input{width:100%;height:40px;border-radius:9px;border:0.5px solid var(--border-strong);padding:0 14px 0 38px;font-size:14px;font-family:'Sarabun',sans-serif;background:var(--surface);color:var(--text-primary);}
+  .search-wrap input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(30,58,76,0.12);}
+  .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted);}
+  select.filter{height:40px;border-radius:9px;border:0.5px solid var(--border-strong);padding:0 32px 0 14px;font-size:14px;font-family:'Sarabun',sans-serif;background:var(--surface);color:var(--text-primary);}
+  select.filter:focus{outline:none;border-color:var(--ink);}
+
+  .list{display:flex;flex-direction:column;gap:8px;}
+  .folder{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:14px;padding:12px 16px 12px 0;position:relative;transition:border-color .12s;}
+  .folder:hover{border-color:var(--border-strong);}
+  .tab{width:6px;align-self:stretch;border-radius:10px 0 0 10px;flex-shrink:0;}
+  .folder.available .tab{background:var(--green-tab);}
+  .folder.borrowed .tab{background:var(--amber-tab);}
+  .folder.overdue .tab{background:var(--red-tab);}
+  .f-acc{width:132px;flex-shrink:0;font-size:13px;color:var(--text-secondary);}
+  .f-main{flex:1;min-width:0;}
+  .f-name{font-size:14.5px;font-weight:500;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .f-sub{font-size:12.5px;color:var(--text-muted);margin:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border-strong);width:fit-content;}
+  .f-balance{width:120px;flex-shrink:0;text-align:right;font-size:13.5px;}
+  .f-status{width:150px;flex-shrink:0;}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12.5px;font-weight:500;}
+  .badge.available{background:var(--green-bg);color:var(--green-text);}
+  .badge.borrowed{background:var(--amber-bg);color:var(--amber-text);}
+  .badge.overdue{background:var(--red-bg);color:var(--red-text);}
+  .f-detail{font-size:11.5px;color:var(--text-muted);margin-top:3px;}
+  .f-action{width:96px;flex-shrink:0;text-align:right;}
+  .btn{height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:500;border:0.5px solid var(--border-strong);background:var(--surface);color:var(--text-primary);cursor:pointer;font-family:'Sarabun',sans-serif;white-space:nowrap;}
+  .btn:hover{background:var(--paper);}
+  .btn:disabled{opacity:0.45;cursor:not-allowed;}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .btn.primary:hover{background:var(--ink-dark);}
+  .btn.danger-outline{color:var(--red-text);border-color:#E8B8B0;}
+  .btn.danger-outline:hover{background:var(--red-bg);}
+  .btn.blue-outline{color:var(--blue-text);border-color:#B9CFE0;}
+  .btn.blue-outline:hover{background:var(--blue-bg);}
+  .btn svg{width:15px;height:15px;flex-shrink:0;}
+  .btn.icon{display:inline-flex;align-items:center;gap:6px;}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--text-muted);font-size:14px;}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,40,52,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--surface);border-radius:14px;padding:22px 24px 24px;width:100%;max-width:400px;max-height:80vh;overflow:auto;}
+  .modal h3{margin:0 0 4px;font-size:16px;font-weight:600;}
+  .modal .modal-sub{font-size:13px;color:var(--text-secondary);margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--text-secondary);margin-bottom:5px;}
+  .field input{width:100%;height:38px;border-radius:8px;border:0.5px solid var(--border-strong);padding:0 12px;font-size:14px;font-family:'Sarabun',sans-serif;}
+  .field input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(30,58,76,0.12);}
+  .field-error{font-size:12px;color:var(--red-text);margin-top:5px;display:none;}
+  .modal-actions{display:flex;gap:8px;margin-top:18px;}
+  .modal-actions .btn{flex:1;}
+  .history-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:0.5px solid var(--border);gap:10px;}
+  .history-row:last-child{border-bottom:none;}
+
+  .dirty-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber-tab);margin-left:6px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+      </div>
+      <div>
+        <h1>ระบบยืม-คืนแฟ้มสินเชื่อ<span class="dirty-dot" id="dirtyDot" style="display:none;" title="มีข้อมูลที่ยังไม่ได้ export"></span></h1>
+        <p id="totalLabel">ไฟล์เดียวจบ ไม่มีเซิร์ฟเวอร์ ไม่มีค่าใช้จ่าย</p>
+      </div>
+    </div>
+    <div class="header-meta">
+      สถานะข้อมูล<br><b id="saveStateLabel">ยังไม่ได้นำเข้าข้อมูล</b>
+    </div>
+  </div>
+
+  <div class="setup-card">
+    <h2>1) เริ่มต้นใช้งาน</h2>
+    <p>นำเข้าไฟล์ LIMIT.xlsx (ข้อมูลแฟ้มทั้งหมด) และถ้าเคยใช้งานมาก่อน ให้นำเข้าไฟล์ข้อมูลการยืมที่ export ไว้ครั้งล่าสุดด้วย เพื่อกู้สถานะยืม-คืนกลับมา</p>
+    <div class="setup-actions">
+      <button class="btn primary icon" onclick="document.getElementById('masterFileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        นำเข้า LIMIT.xlsx
+      </button>
+      <input type="file" id="masterFileInput" accept=".xlsx,.xls" style="display:none;">
+
+      <button class="btn blue-outline icon" onclick="document.getElementById('restoreFileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+        นำเข้าข้อมูลการยืมเดิม (กู้คืน)
+      </button>
+      <input type="file" id="restoreFileInput" accept=".xlsx,.xls" style="display:none;">
+
+      <button class="btn icon" id="exportBtn" onclick="exportBorrowRecords()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0-4 4m4-4 4 4M4 4h16"/></svg>
+        Export ข้อมูลการยืม
+      </button>
+    </div>
+  </div>
+
+  <div id="banner" class="banner" style="display:none;"></div>
+
+  <div class="stats" id="statsWrap" style="display:none;">
+    <div class="stat-card available"><div class="stat-num" id="statAvailable">0</div><div class="stat-label">พร้อมให้ยืม</div></div>
+    <div class="stat-card borrowed"><div class="stat-num" id="statBorrowed">0</div><div class="stat-label">ยืมอยู่</div></div>
+    <div class="stat-card overdue"><div class="stat-num" id="statOverdue">0</div><div class="stat-label">เกินกำหนดคืน</div></div>
+  </div>
+
+  <div class="toolbar" id="toolbarWrap" style="display:none;">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchInput" type="text" placeholder="ค้นหาเลขบัญชีหรือชื่อลูกค้า">
+    </div>
+    <select class="filter" id="statusFilter">
+      <option value="all">สถานะทั้งหมด</option>
+      <option value="available">พร้อมให้ยืม</option>
+      <option value="borrowed">ยืมอยู่</option>
+      <option value="overdue">เกินกำหนดคืน</option>
+    </select>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="empty" id="emptyState" style="display:none;"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">ยืมแฟ้ม</h3>
+    <p class="modal-sub" id="modalSub"></p>
+    <div class="field">
+      <label>ชื่อผู้ยืม</label>
+      <input type="text" id="borrowerInput" placeholder="เช่น สมชาย ใจดี">
+      <div class="field-error" id="borrowerError">กรุณากรอกชื่อผู้ยืม</div>
+    </div>
+    <div class="field">
+      <label>กำหนดคืนภายในวันที่</label>
+      <input type="date" id="dueDateInput">
+      <div class="field-error" id="dueDateError">กรุณาเลือกวันที่กำหนดคืน</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn primary" onclick="confirmBorrow()">ยืนยันยืมแฟ้ม</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="historyOverlay">
+  <div class="modal">
+    <h3 id="historyTitle">ประวัติการยืม</h3>
+    <div id="historyList" style="margin-top:10px;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeHistory()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== State (all in-memory, no server) =====
+let masterFiles = [];      // [{acc, name, balance, contractDate}]
+let borrowRecords = [];    // [{id, acc, borrower, borrowDate, dueDate, returnDate, status}]
+let nextRecordId = 1;
+let isDirty = false;
+let masterLoaded = false;
+
+function markDirty(v){
+  isDirty = v;
+  document.getElementById('dirtyDot').style.display = v ? 'inline-block' : 'none';
+  document.getElementById('saveStateLabel').textContent = v
+    ? 'มีการเปลี่ยนแปลงที่ยังไม่ได้ Export'
+    : (masterLoaded ? 'ข้อมูลล่าสุด (Export แล้ว)' : 'ยังไม่ได้นำเข้าข้อมูล');
+}
+
+window.addEventListener('beforeunload', function(e){
+  if(isDirty){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ===== Helpers =====
+const today = new Date().toISOString().slice(0,10);
+
+function fmtMoney(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDateTH(iso){
+  if(!iso) return '-';
+  const d = new Date(iso+'T00:00:00');
+  const months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return d.getDate()+' '+months[d.getMonth()]+' '+(d.getFullYear()+543);
+}
+function excelSerialToISO(serial){
+  const ms = Math.round((serial - 25569) * 86400 * 1000);
+  return new Date(ms).toISOString().slice(0,10);
+}
+function parseAnyDate(val){
+  if(val === undefined || val === null || val === '') return null;
+  if(typeof val === 'number') return excelSerialToISO(val);
+  const s = String(val).trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m){
+    const dd = m[1].padStart(2,'0'), mm = m[2].padStart(2,'0');
+    return m[3]+'-'+mm+'-'+dd;
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d.toISOString().slice(0,10);
+}
+function cleanAcc(val){ return String(val).trim().replace(/\.0$/,''); }
+
+function showBanner(text, type){
+  const el = document.getElementById('banner');
+  el.className = 'banner '+type;
+  const icon = type === 'error'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/></svg>'
+    : type === 'warn'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 2.5 17a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 13 4 4L19 7"/></svg>';
+  el.innerHTML = icon + text;
+  el.style.display = 'flex';
+}
+
+// ===== Import LIMIT.xlsx (master data) =====
+document.getElementById('masterFileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const wb = XLSX.read(evt.target.result, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+
+      const byAcc = {};
+      masterFiles.forEach(f=> byAcc[f.acc] = f);
+      let updated = 0, added = 0;
+
+      rows.forEach(row=>{
+        if(row.ACC === undefined || row.ACC === '') return;
+        const acc = cleanAcc(row.ACC);
+        const name = String(row.KANK || row.NAME || '').trim();
+        const balance = parseFloat(row.ALLBALANCE) || 0;
+        const contractDate = parseAnyDate(row['NO.']) || parseAnyDate(row.NO);
+
+        if(byAcc[acc]){
+          byAcc[acc].name = name || byAcc[acc].name;
+          byAcc[acc].balance = balance;
+          if(contractDate) byAcc[acc].contractDate = contractDate;
+          updated++;
+        } else {
+          const nf = {acc, name, balance, contractDate: contractDate || today};
+          masterFiles.push(nf);
+          byAcc[acc] = nf;
+          added++;
+        }
+      });
+
+      masterLoaded = true;
+      document.getElementById('statsWrap').style.display = 'grid';
+      document.getElementById('toolbarWrap').style.display = 'flex';
+      document.getElementById('exportBtn').disabled = false;
+      showBanner('นำเข้า LIMIT.xlsx สำเร็จ — อัปเดต '+updated+' รายการ, เพิ่มใหม่ '+added+' รายการ (สถานะยืม-คืนที่มีอยู่ไม่ถูกแตะต้อง)', 'success');
+      markDirty(isDirty); // refresh label
+      render();
+    } catch(err){
+      showBanner('นำเข้าไฟล์ไม่สำเร็จ: ไฟล์ไม่ถูกต้องหรือรูปแบบคอลัมน์ไม่ตรง (ต้องมีคอลัมน์ ACC, KANK, ALLBALANCE, NO.)', 'error');
+    }
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// ===== Import previously-exported borrow records (restore) =====
+document.getElementById('restoreFileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const wb = XLSX.read(evt.target.result, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+
+      let restored = 0;
+      rows.forEach(row=>{
+        const acc = cleanAcc(row['ACC'] ?? row['เลขบัญชี'] ?? '');
+        if(!acc) return;
+        const borrower = String(row['ผู้ยืม'] ?? '').trim();
+        const borrowDate = parseAnyDate(row['วันที่ยืม']);
+        const dueDate = parseAnyDate(row['กำหนดคืน']);
+        const returnDate = parseAnyDate(row['วันที่คืนจริง']);
+        if(!borrower || !borrowDate || !dueDate) return;
+
+        borrowRecords.push({
+          id: nextRecordId++,
+          acc, borrower, borrowDate, dueDate, returnDate,
+          status: returnDate ? 'returned' : 'borrowed'
+        });
+        restored++;
+      });
+
+      showBanner('กู้คืนข้อมูลการยืมสำเร็จ — โหลดประวัติ '+restored+' รายการ', 'success');
+      markDirty(false);
+      render();
+    } catch(err){
+      showBanner('นำเข้าไฟล์ข้อมูลการยืมไม่สำเร็จ: รูปแบบไฟล์ไม่ตรง (ต้องเป็นไฟล์ที่ export จากระบบนี้)', 'error');
+    }
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// ===== Export borrow records =====
+function exportBorrowRecords(){
+  const data = borrowRecords.map(r=>{
+    const f = masterFiles.find(x=>x.acc === r.acc);
+    return {
+      'ACC': r.acc,
+      'ชื่อลูกค้า': f ? f.name : '',
+      'ผู้ยืม': r.borrower,
+      'วันที่ยืม': r.borrowDate,
+      'กำหนดคืน': r.dueDate,
+      'วันที่คืนจริง': r.returnDate || '',
+      'สถานะ': r.returnDate ? 'คืนแล้ว' : (r.dueDate < today ? 'เกินกำหนด' : 'ยืมอยู่')
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'BorrowRecords');
+  const stamp = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
+  XLSX.writeFile(wb, 'ข้อมูลการยืมแฟ้ม_'+stamp+'.xlsx');
+  markDirty(false);
+  showBanner('Export สำเร็จ — เก็บไฟล์นี้ไว้ แล้วนำเข้ากลับมาในครั้งถัดไปด้วยปุ่ม "นำเข้าข้อมูลการยืมเดิม"', 'success');
+}
+
+// ===== Status / render =====
+function statusOf(f){
+  const open = borrowRecords.find(r=> r.acc===f.acc && r.status==='borrowed' && !r.returnDate);
+  if(!open) return {status:'available', record:null};
+  return { status: open.dueDate < today ? 'overdue' : 'borrowed', record: open };
+}
+
+function render(){
+  if(!masterLoaded){
+    document.getElementById('list').innerHTML = '';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').textContent = 'ยังไม่ได้นำเข้าข้อมูล — เริ่มจากกด "นำเข้า LIMIT.xlsx" ด้านบน';
+    return;
+  }
+
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+
+  let available=0, borrowedCnt=0, overdue=0;
+  masterFiles.forEach(f=>{
+    const s = statusOf(f).status;
+    if(s==='available') available++;
+    else if(s==='borrowed') borrowedCnt++;
+    else overdue++;
+  });
+  document.getElementById('statAvailable').textContent = available;
+  document.getElementById('statBorrowed').textContent = borrowedCnt;
+  document.getElementById('statOverdue').textContent = overdue;
+  document.getElementById('totalLabel').textContent = 'ทะเบียนแฟ้มทั้งหมด '+masterFiles.length.toLocaleString()+' บัญชี';
+
+  let filtered = masterFiles.filter(f=>{
+    const s = statusOf(f).status;
+    const matchQ = !q || f.acc.includes(q) || f.name.toLowerCase().includes(q);
+    const matchS = statusF==='all' || s===statusF;
+    return matchQ && matchS;
+  });
+
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  document.getElementById('emptyState').style.display = filtered.length? 'none':'block';
+  document.getElementById('emptyState').textContent = 'ไม่พบแฟ้มที่ตรงกับเงื่อนไข';
+
+  const labelMap = {available:'พร้อมให้ยืม', borrowed:'ยืมอยู่', overdue:'เกินกำหนดคืน'};
+
+  filtered.forEach(f=>{
+    const {status:s, record} = statusOf(f);
+    const row = document.createElement('div');
+    row.className = 'folder '+s;
+
+    let statusHtml = `<span class="badge ${s}">${labelMap[s]}</span>`;
+    let detailHtml = record ? `<div class="f-detail">ผู้ยืม: ${record.borrower} · กำหนดคืน ${fmtDateTH(record.dueDate)}</div>` : '';
+
+    let actionHtml = s==='available'
+      ? `<button class="btn primary" onclick="openBorrowModal('${f.acc}')">ยืม</button>`
+      : `<button class="btn ${s==='overdue'?'danger-outline':''}" onclick="returnFile('${f.acc}')">คืนแฟ้ม</button>`;
+
+    row.innerHTML = `
+      <div class="tab"></div>
+      <div class="f-acc mono">${f.acc}</div>
+      <div class="f-main">
+        <p class="f-name">${f.name}</p>
+        <p class="f-sub" onclick="openHistory('${f.acc}')">ทำสัญญา ${fmtDateTH(f.contractDate)} · ดูประวัติ</p>
+      </div>
+      <div class="f-balance mono">${fmtMoney(f.balance)}</div>
+      <div class="f-status">${statusHtml}${detailHtml}</div>
+      <div class="f-action">${actionHtml}</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ===== Borrow modal =====
+let activeBorrowAcc = null;
+function openBorrowModal(acc){
+  activeBorrowAcc = acc;
+  const f = masterFiles.find(x=>x.acc===acc);
+  document.getElementById('modalTitle').textContent = 'ยืมแฟ้ม';
+  document.getElementById('modalSub').textContent = (f?f.name:'')+' · '+acc;
+  document.getElementById('borrowerInput').value='';
+  document.getElementById('dueDateInput').value='';
+  document.getElementById('borrowerError').style.display='none';
+  document.getElementById('dueDateError').style.display='none';
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+  activeBorrowAcc = null;
+}
+function confirmBorrow(){
+  const borrower = document.getElementById('borrowerInput').value.trim();
+  const dueDate = document.getElementById('dueDateInput').value;
+  document.getElementById('borrowerError').style.display = borrower ? 'none' : 'block';
+  document.getElementById('dueDateError').style.display = dueDate ? 'none' : 'block';
+  if(!borrower || !dueDate) return;
+
+  borrowRecords.push({
+    id: nextRecordId++, acc: activeBorrowAcc, borrower, borrowDate: today, dueDate,
+    returnDate: null, status:'borrowed'
+  });
+  markDirty(true);
+  closeModal();
+  render();
+}
+function returnFile(acc){
+  const open = borrowRecords.find(r=> r.acc===acc && r.status==='borrowed' && !r.returnDate);
+  if(!open) return;
+  open.returnDate = today;
+  open.status = 'returned';
+  markDirty(true);
+  render();
+}
+
+// ===== History =====
+function openHistory(acc){
+  const f = masterFiles.find(x=>x.acc===acc);
+  document.getElementById('historyTitle').textContent = 'ประวัติการยืม · '+(f?f.name:acc);
+  const rows = borrowRecords.filter(r=>r.acc===acc).sort((a,b)=> b.borrowDate.localeCompare(a.borrowDate));
+  const el = document.getElementById('historyList');
+  if(!rows.length){
+    el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">ยังไม่มีประวัติการยืมแฟ้มนี้</p>';
+  } else {
+    el.innerHTML = rows.map(h=>`
+      <div class="history-row">
+        <span>${h.borrower}</span>
+        <span style="color:var(--text-secondary);">${fmtDateTH(h.borrowDate)} → ${h.returnDate ? fmtDateTH(h.returnDate) : 'ยังไม่คืน'}</span>
+      </div>
+    `).join('');
+  }
+  document.getElementById('historyOverlay').classList.add('show');
+}
+function closeHistory(){ document.getElementById('historyOverlay').classList.remove('show'); }
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('statusFilter').addEventListener('change', render);
+
+render();
+</script>
+</body>
+</html>
