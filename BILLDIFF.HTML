@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เปรียบเทียบ bill0.xlsx ↔ bill.xlsx (ACC / NAME / CALL / TYPE / MKT CODE)</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --card:#ffffff; --line:#e2e8f0; --txt:#0f172a; --mut:#64748b;
+    --pri:#2563eb; --ok:#16a34a; --del:#dc2626; --warn:#d97706; --chg:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Sarabun","Segoe UI",Tahoma,sans-serif;background:#f1f5f9;color:var(--txt)}
+  header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:22px 24px}
+  header h1{margin:0;font-size:20px}
+  header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .wrap{max-width:1500px;margin:0 auto;padding:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  h3{margin:0 0 10px;font-size:15px}
+  label{font-size:13px;color:var(--mut)}
+  input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit}
+  input[type=file]{font-size:12px;margin-top:6px}
+  button{background:var(--pri);color:#fff;border:0;padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+  button.sec{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:#fff}
+  .stat .n{font-size:26px;font-weight:700;line-height:1.1}
+  .stat .l{font-size:12px;color:var(--mut);margin-top:4px}
+  .s-eq .n{color:var(--ok)} .s-chg .n{color:var(--chg)} .s-add .n{color:var(--pri)} .s-del .n{color:var(--del)} .s-tot .n{color:var(--txt)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#f8fafc;position:sticky;top:0;z-index:2;font-size:12px}
+  .tbl-wrap{max-height:580px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .old{color:var(--del);text-decoration:line-through}
+  .new{color:var(--ok);font-weight:600}
+  .diffcell{background:#fef9c3}
+  .acc{font-family:"Consolas",monospace;font-weight:600;white-space:nowrap}
+  td.col-NAME{max-width:280px;word-break:break-word}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tab{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;font-size:13px}
+  .tab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600}
+  .b-chg{background:#ede9fe;color:#6d28d9}.b-add{background:#dbeafe;color:#1d4ed8}.b-del{background:#fee2e2;color:#b91c1c}
+  .msg{padding:10px 12px;border-radius:8px;font-size:13px;margin-top:8px}
+  .m-ok{background:#dcfce7;color:#166534}.m-err{background:#fee2e2;color:#991b1b}.m-info{background:#e0f2fe;color:#075985}
+  .hint{font-size:12px;color:var(--mut);margin-top:6px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--txt)}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 เปรียบเทียบไฟล์ bill0.xlsx ↔ bill.xlsx</h1>
+  <p>เปรียบเทียบคอลัมน์ <b>ACC (TEXT) · NAME · CALL · TYPE · MKT CODE</b> — จับคู่แถวด้วย ACC</p>
+</header>
+
+<div class="wrap">
+
+  <!-- แหล่งข้อมูล -->
+  <div class="card">
+    <h3>1) แหล่งข้อมูล</h3>
+    <div class="grid2">
+      <div>
+        <label>ไฟล์เดิม (A) : bill0.xlsx</label>
+        <input type="text" id="urlA" value="https://github.com/aklaytae/data-portal/blob/main/backend/bill0.xlsx">
+        <input type="file" id="fileA" accept=".xlsx,.xls,.csv">
+        <div id="stA" class="hint">ยังไม่ได้โหลด</div>
+        <select id="shA" style="margin-top:6px;display:none"></select>
+      </div>
+      <div>
+        <label>ไฟล์ใหม่ (B) : bill.xlsx</label>
+        <input type="text" id="urlB" value="https://github.com/aklaytae/data-portal/blob/main/backend/bill.xlsx">
+        <input type="file" id="fileB" accept=".xlsx,.xls,.csv">
+        <div id="stB" class="hint">ยังไม่ได้โหลด</div>
+        <select id="shB" style="margin-top:6px;display:none"></select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnLoad">⬇️ โหลดจาก GitHub &amp; เปรียบเทียบ</button>
+      <button id="btnCmp" class="sec" disabled>🔁 เปรียบเทียบใหม่</button>
+      <button id="btnCsv" class="sec" disabled>💾 Export CSV</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <span class="chk"><input type="checkbox" id="optZero"> ตัดศูนย์นำหน้า ACC ตอนจับคู่</span>
+      <span class="chk"><input type="checkbox" id="optCase" checked> ไม่สนตัวพิมพ์เล็ก/ใหญ่</span>
+      <span class="chk"><input type="checkbox" id="optName" checked> NAME: ไม่สนช่องว่าง/จุด/ขีด (นาย, น.ส. ฯลฯ)</span>
+    </div>
+    <div id="msg"></div>
+    <div class="hint">* ถ้าเปิดจากเครื่อง (file://) แล้วโหลด GitHub ไม่ได้ ให้ใช้ปุ่มเลือกไฟล์อัปโหลดแทน</div>
+  </div>
+
+  <!-- สรุป -->
+  <div class="card" id="sumCard" style="display:none">
+    <h3>2) สรุปผลการเปรียบเทียบ</h3>
+    <div class="stats" id="stats"></div>
+    <div style="margin-top:16px">
+      <h3>ความต่างรายคอลัมน์ (เฉพาะ ACC ที่มีทั้ง 2 ไฟล์)</h3>
+      <div class="tbl-wrap" style="max-height:none"><table id="fieldTbl"></table></div>
+    </div>
+    <div id="colMap"></div>
+    <div id="dupWarn"></div>
+  </div>
+
+  <!-- รายละเอียด -->
+  <div class="card" id="detCard" style="display:none">
+    <h3>3) รายละเอียดความแตกต่าง</h3>
+    <div class="tabs" id="tabs"></div>
+    <div class="row" style="margin-bottom:10px">
+      <input type="text" id="q" placeholder="🔍 ค้นหา ACC / NAME / CALL / TYPE / MKT CODE ..." style="max-width:360px">
+      <select id="fFilter" style="max-width:200px"></select>
+      <span class="hint" id="cnt"></span>
+    </div>
+    <div class="tbl-wrap"><table id="dataTbl"></table></div>
+  </div>
+
+</div>
+
+<script>
+/* ================== ค่าคงที่ ================== */
+/* ⭐ เพิ่ม NAME แล้ว — สลับลำดับคอลัมน์ได้ที่บรรทัดนี้บรรทัดเดียว */
+const FIELDS = ["NAME","CALL","TYPE","MKT CODE"];
+const ALIAS = {
+  "ACC"      : ["ACC","ACCNO","ACCOUNT","ACCOUNTNO","ACCT","ACCTNO","เลขที่บัญชี","บัญชี"],
+  "NAME"     : ["NAME","CUSTNAME","CUSTOMERNAME","ACCNAME","ACCOUNTNAME","FULLNAME","NAME1",
+                "ชื่อ","ชื่อลูกค้า","ชื่อ-สกุล","ชื่อสกุล","ชื่อบัญชี"],
+  "CALL"     : ["CALL","CALLSIGN","CALLNAME","CALLNO","CALLTEL"],
+  "TYPE"     : ["TYPE","TYP","ประเภท"],
+  "MKT CODE" : ["MKTCODE","MKT","MARKETCODE","MARKETINGCODE","MKTCD","MKTID","รหัสMKT"]
+};
+const S = {A:null,B:null,result:null,tab:"changed",only:"ALL"};
+
+/* ================== helper ================== */
+const $ = id => document.getElementById(id);
+const nk = s => String(s??"").toUpperCase().replace(/[\s._\-\/\\()]/g,"").trim();
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function toRaw(u){
+  u=(u||"").trim();
+  if(u.includes("github.com")&&u.includes("/blob/"))
+    u=u.replace("https://github.com/","https://raw.githubusercontent.com/").replace("/blob/","/");
+  return u;
+}
+function say(html,cls){ $("msg").innerHTML=`<div class="msg ${cls}">${html}</div>`; }
+
+/* ---- อ่านเซลล์เป็นข้อความเสมอ (ACC เป็น TEXT) ---- */
+function cellText(c){
+  if(c==null) return "";
+  if(c.t==="n"){
+    const v=c.v;
+    if(Number.isInteger(v)) return String(v);
+    if(Math.abs(v)>=1e15) return BigInt(Math.round(v)).toString();
+    return String(v);
+  }
+  if(c.t==="b") return c.v?"TRUE":"FALSE";
+  if(c.t==="d") return c.w||String(c.v);
+  if(c.v!=null) return String(c.v);
+  return c.w||"";
+}
+
+/* ---- ชีต -> ตาราง ---- */
+function sheetToTable(ws){
+  if(!ws||!ws["!ref"]) return {headers:[],rows:[]};
+  const R=XLSX.utils.decode_range(ws["!ref"]), grid=[];
+  for(let r=R.s.r;r<=R.e.r;r++){
+    const line=[];
+    for(let c=R.s.c;c<=R.e.c;c++) line.push(cellText(ws[XLSX.utils.encode_cell({r,c})]).trim());
+    grid.push(line);
+  }
+  let hi=-1;
+  for(let i=0;i<Math.min(25,grid.length);i++){
+    const set=grid[i].map(nk);
+    if(set.some(v=>ALIAS.ACC.map(nk).includes(v))){ hi=i; break; }
+  }
+  if(hi<0) hi=grid.findIndex(r=>r.some(v=>v!==""));
+  if(hi<0) return {headers:[],rows:[]};
+  const rows=[];
+  for(let i=hi+1;i<grid.length;i++){
+    if(grid[i].every(v=>v==="")) continue;
+    rows.push({excelRow:i+1+R.s.r,cells:grid[i]});
+  }
+  return {headers:grid[hi],rows};
+}
+
+/* ---- หา index คอลัมน์: รอบแรก match ตรงตัว, รอบสอง match ขึ้นต้น (กันชนกัน เช่น ACCNAME vs ACC) ---- */
+function findCols(headers){
+  const H=headers.map(nk), keys=["ACC",...FIELDS], out={}, used=new Set();
+  keys.forEach(k=>out[k]=-1);
+  keys.forEach(k=>{
+    const cands=ALIAS[k].map(nk);
+    const i=H.findIndex((h,ix)=>h&&!used.has(ix)&&cands.includes(h));
+    if(i>=0){ out[k]=i; used.add(i); }
+  });
+  keys.filter(k=>out[k]<0).forEach(k=>{
+    const cands=ALIAS[k].map(nk);
+    const i=H.findIndex((h,ix)=>h&&!used.has(ix)&&cands.some(c=>h.startsWith(c)));
+    if(i>=0){ out[k]=i; used.add(i); }
+  });
+  return out;
+}
+
+/* ---- normalize ---- */
+function normAcc(v){
+  let s=String(v??"").trim().replace(/^['`]+/,"").replace(/[\s,]/g,"");
+  if(/^\d+\.0+$/.test(s)) s=s.split(".")[0];
+  return s;
+}
+function keyAcc(v){
+  let k=normAcc(v).toUpperCase();
+  if($("optZero").checked) k=k.replace(/^0+/,"")||"0";
+  return k;
+}
+function normVal(v,f){
+  let s=String(v??"").trim().replace(/\s+/g," ");
+  if($("optCase").checked) s=s.toUpperCase();
+  if(f==="NAME"&&$("optName").checked) s=s.replace(/[\s.,\-_'"()\/]/g,"");
+  return s;
+}
+
+/* ================== โหลดไฟล์ ================== */
+async function loadURL(url){
+  const r=await fetch(toRaw(url)+"?t="+Date.now());
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return XLSX.read(await r.arrayBuffer(),{type:"array",raw:true});
+}
+function readLocal(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=e=>res(XLSX.read(new Uint8Array(e.target.result),{type:"array",raw:true}));
+    fr.onerror=rej; fr.readAsArrayBuffer(file);
+  });
+}
+function setFile(tag,wb,name){
+  S[tag]={wb,name};
+  const sel=$("sh"+tag);
+  sel.innerHTML=wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join("");
+  sel.style.display=wb.SheetNames.length>1?"block":"none";
+  $("st"+tag).innerHTML=`✅ <b>${esc(name)}</b> — ชีต: ${wb.SheetNames.length}`;
+}
+
+/* ================== เปรียบเทียบ ================== */
+function compare(){
+  if(!S.A||!S.B){ say("⚠️ ต้องมีทั้ง 2 ไฟล์ก่อน","m-err"); return; }
+  const tA=sheetToTable(S.A.wb.Sheets[$("shA").value||S.A.wb.SheetNames[0]]);
+  const tB=sheetToTable(S.B.wb.Sheets[$("shB").value||S.B.wb.SheetNames[0]]);
+  const cA=findCols(tA.headers), cB=findCols(tB.headers);
+  if(cA.ACC<0||cB.ACC<0){ say("❌ ไม่พบคอลัมน์ ACC ในไฟล์ "+(cA.ACC<0?"A (bill0)":"B (bill)"),"m-err"); return; }
+
+  const get=(row,cols,k)=> cols[k]>=0 ? (row.cells[cols[k]]??"") : "";
+  const index=(t,c)=>{
+    const m=new Map(), dup=[];
+    t.rows.forEach(r=>{
+      const acc=get(r,c,"ACC");
+      if(normAcc(acc)==="") return;
+      const k=keyAcc(acc), o={key:k,acc:normAcc(acc),excelRow:r.excelRow};
+      FIELDS.forEach(f=>o[f]=get(r,c,f));
+      if(!m.has(k)) m.set(k,[]); else dup.push(k);
+      m.get(k).push(o);
+    });
+    return {m,dup:[...new Set(dup)],count:t.rows.filter(r=>normAcc(get(r,c,"ACC"))!=="").length};
+  };
+  const iA=index(tA,cA), iB=index(tB,cB);
+
+  const changed=[],added=[],removed=[],same=[];
+  const fieldDiff={}; FIELDS.forEach(f=>fieldDiff[f]=0);
+
+  new Set([...iA.m.keys(),...iB.m.keys()]).forEach(k=>{
+    const a=iA.m.get(k)||[], b=iB.m.get(k)||[], n=Math.max(a.length,b.length);
+    for(let i=0;i<n;i++){
+      const ra=a[i], rb=b[i];
+      if(ra&&rb){
+        const diffs=FIELDS.filter(f=>normVal(ra[f],f)!==normVal(rb[f],f));
+        if(diffs.length){ diffs.forEach(f=>fieldDiff[f]++); changed.push({acc:rb.acc||ra.acc,a:ra,b:rb,diffs}); }
+        else same.push({acc:ra.acc,a:ra,b:rb,diffs:[]});
+      } else if(rb) added.push({acc:rb.acc,b:rb,diffs:[]});
+      else removed.push({acc:ra.acc,a:ra,diffs:[]});
+    }
+  });
+  const srt=(x,y)=>x.acc.localeCompare(y.acc,undefined,{numeric:true});
+  [changed,added,removed,same].forEach(a=>a.sort(srt));
+
+  S.result={changed,added,removed,same,fieldDiff,iA,iB,cA,cB,hA:tA.headers,hB:tB.headers};
+  render();
+
+  const miss=[];
+  ["ACC",...FIELDS].forEach(k=>{ if(cA[k]<0) miss.push("A→"+k); if(cB[k]<0) miss.push("B→"+k); });
+  say(`✅ เปรียบเทียบสำเร็จ | bill0: <b>${iA.count.toLocaleString()}</b> แถว · bill: <b>${iB.count.toLocaleString()}</b> แถว`+
+      (miss.length?`<br>⚠️ ไม่พบคอลัมน์: <b>${miss.join(", ")}</b> (ถือว่าค่าว่าง)`:""), miss.length?"m-info":"m-ok");
+  $("btnCsv").disabled=false;
+}
+
+/* ================== แสดงผล ================== */
+function render(){
+  const R=S.result, matched=R.changed.length+R.same.length;
+  const pct=matched?(R.changed.length/matched*100):0;
+  $("sumCard").style.display="block"; $("detCard").style.display="block";
+
+  $("stats").innerHTML=`
+    <div class="stat s-tot"><div class="n">${R.iA.count.toLocaleString()}</div><div class="l">แถวใน bill0 (A)</div></div>
+    <div class="stat s-tot"><div class="n">${R.iB.count.toLocaleString()}</div><div class="l">แถวใน bill (B)</div></div>
+    <div class="stat s-eq"><div class="n">${R.same.length.toLocaleString()}</div><div class="l">เหมือนกันทุกฟิลด์</div></div>
+    <div class="stat s-chg"><div class="n">${R.changed.length.toLocaleString()}</div><div class="l">มีการแก้ไข (${pct.toFixed(2)}%)</div></div>
+    <div class="stat s-add"><div class="n">${R.added.length.toLocaleString()}</div><div class="l">เพิ่มใหม่ใน bill</div></div>
+    <div class="stat s-del"><div class="n">${R.removed.length.toLocaleString()}</div><div class="l">หายไปจาก bill0</div></div>
+    <div class="stat"><div class="n" style="color:var(--warn)">${(R.changed.length+R.added.length+R.removed.length).toLocaleString()}</div><div class="l">รวมความต่างทั้งหมด</div></div>`;
+
+  $("fieldTbl").innerHTML=`<tr><th>คอลัมน์</th><th>จำนวนที่ต่างกัน</th><th>% ของแถวที่จับคู่ได้ (${matched.toLocaleString()})</th><th>สถานะ</th></tr>`+
+    FIELDS.map(f=>{
+      const n=R.fieldDiff[f], p=matched?(n/matched*100):0;
+      return `<tr><td><b>${f}</b></td><td>${n.toLocaleString()}</td><td>${p.toFixed(2)}%</td>
+        <td>${n?'<span class="badge b-chg">ต่างกัน</span>':'<span class="badge" style="background:#dcfce7;color:#166534">ตรงกัน</span>'}</td></tr>`;
+    }).join("")+
+    `<tr style="background:#f8fafc"><td><b>ACC (คีย์)</b></td><td>${(R.added.length+R.removed.length).toLocaleString()}</td>
+      <td>-</td><td>เพิ่ม ${R.added.length} / หาย ${R.removed.length}</td></tr>`;
+
+  $("colMap").innerHTML=`<div class="hint">🔗 คอลัมน์ที่จับได้ — `+
+    ["ACC",...FIELDS].map(k=>`<b>${k}</b>: A[${R.cA[k]>=0?esc(R.hA[R.cA[k]]):"—"}] / B[${R.cB[k]>=0?esc(R.hB[R.cB[k]]):"—"}]`).join(" &nbsp;|&nbsp; ")+`</div>`;
+
+  const dups=[...new Set([...R.iA.dup,...R.iB.dup])];
+  $("dupWarn").innerHTML=dups.length
+    ? `<div class="msg m-info">ℹ️ พบ ACC ซ้ำ ${dups.length} รายการ (จับคู่ตามลำดับที่พบ): <b>${dups.slice(0,15).map(esc).join(", ")}${dups.length>15?" ...":""}</b></div>`:"";
+
+  $("tabs").innerHTML=[
+    ["changed",`✏️ แก้ไข (${R.changed.length})`],
+    ["added",`➕ เพิ่มใหม่ (${R.added.length})`],
+    ["removed",`➖ หายไป (${R.removed.length})`],
+    ["same",`✅ เหมือนกัน (${R.same.length})`],
+    ["all","📋 ทั้งหมด"]
+  ].map(([k,l])=>`<div class="tab ${S.tab===k?"active":""}" data-t="${k}">${l}</div>`).join("");
+  [...$("tabs").children].forEach(el=>el.onclick=()=>{S.tab=el.dataset.t;render();});
+
+  $("fFilter").innerHTML=`<option value="ALL">— กรองฟิลด์ที่เปลี่ยน: ทั้งหมด —</option>`+
+    FIELDS.map(f=>`<option value="${f}" ${S.only===f?"selected":""}>เฉพาะที่ ${f} เปลี่ยน (${R.fieldDiff[f]})</option>`).join("");
+  $("fFilter").value=S.only;
+  drawTable();
+}
+
+function rowsForTab(){
+  const R=S.result;
+  if(S.tab==="all") return [...R.changed.map(r=>({...r,st:"changed"})),...R.added.map(r=>({...r,st:"added"})),
+                            ...R.removed.map(r=>({...r,st:"removed"})),...R.same.map(r=>({...r,st:"same"}))];
+  return R[S.tab].map(r=>({...r,st:S.tab}));
+}
+function drawTable(){
+  const q=$("q").value.trim().toUpperCase();
+  let rows=rowsForTab();
+  if(S.only!=="ALL") rows=rows.filter(r=>(r.diffs||[]).includes(S.only));
+  if(q) rows=rows.filter(r=>[r.acc,...FIELDS.map(f=>(r.a?.[f]||"")+" "+(r.b?.[f]||""))].join(" ").toUpperCase().includes(q));
+  $("cnt").textContent=`แสดง ${rows.length.toLocaleString()} รายการ`;
+
+  const cap=3000, show=rows.slice(0,cap);
+  const badge={changed:'<span class="badge b-chg">แก้ไข</span>',added:'<span class="badge b-add">เพิ่ม</span>',
+               removed:'<span class="badge b-del">หาย</span>',same:'<span class="badge" style="background:#dcfce7;color:#166534">เหมือน</span>'};
+  let html=`<tr><th style="width:46px">#</th><th style="width:78px">สถานะ</th><th>ACC</th>`+
+    FIELDS.map(f=>`<th>${f}<div style="font-weight:400;color:#94a3b8">bill0 → bill</div></th>`).join("")+
+    `<th style="width:96px">แถว A/B</th></tr>`;
+  html+=show.map((r,i)=>{
+    const cells=FIELDS.map(f=>{
+      const av=r.a?r.a[f]:"", bv=r.b?r.b[f]:"", cls=`col-${f.replace(/\s/g,"")}`;
+      if(r.st==="added")   return `<td class="${cls}"><span class="new">${esc(bv)||"-"}</span></td>`;
+      if(r.st==="removed") return `<td class="${cls}"><span class="old">${esc(av)||"-"}</span></td>`;
+      return normVal(av,f)!==normVal(bv,f)
+        ? `<td class="${cls} diffcell"><span class="old">${esc(av)||"(ว่าง)"}</span> → <span class="new">${esc(bv)||"(ว่าง)"}</span></td>`
+        : `<td class="${cls}">${esc(bv||av)}</td>`;
+    }).join("");
+    return `<tr><td>${i+1}</td><td>${badge[r.st]}</td><td class="acc">${esc(r.acc)}</td>${cells}
+      <td style="color:#94a3b8;font-size:12px">${r.a?r.a.excelRow:"-"} / ${r.b?r.b.excelRow:"-"}</td></tr>`;
+  }).join("");
+  if(!show.length) html+=`<tr><td colspan="${FIELDS.length+4}" style="text-align:center;color:#94a3b8;padding:22px">— ไม่มีข้อมูล —</td></tr>`;
+  if(rows.length>cap) html+=`<tr><td colspan="${FIELDS.length+4}" style="text-align:center;color:#d97706">แสดง ${cap.toLocaleString()} แถวแรกจาก ${rows.length.toLocaleString()} แถว (Export CSV เพื่อดูทั้งหมด)</td></tr>`;
+  $("dataTbl").innerHTML=html;
+}
+
+/* ================== Export ================== */
+function exportCSV(){
+  const R=S.result;
+  const out=[["STATUS","ACC",...FIELDS.flatMap(f=>[f+"_bill0",f+"_bill"]),"FIELDS_CHANGED","ROW_A","ROW_B"]];
+  const push=(st,r)=>out.push([st,"'"+r.acc,...FIELDS.flatMap(f=>[r.a?r.a[f]:"",r.b?r.b[f]:""]),
+    (r.diffs||[]).join(" | "),r.a?r.a.excelRow:"",r.b?r.b.excelRow:""]);
+  R.changed.forEach(r=>push("CHANGED",r)); R.added.forEach(r=>push("ADDED",r));
+  R.removed.forEach(r=>push("REMOVED",r)); R.same.forEach(r=>push("SAME",r));
+  const csv="\uFEFF"+out.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download="compare_bill0_vs_bill_"+new Date().toISOString().slice(0,10)+".csv"; a.click();
+}
+
+/* ================== events ================== */
+$("btnLoad").onclick=async()=>{
+  say("⏳ กำลังโหลดไฟล์จาก GitHub ...","m-info");
+  try{
+    const [a,b]=await Promise.all([loadURL($("urlA").value),loadURL($("urlB").value)]);
+    setFile("A",a,"bill0.xlsx"); setFile("B",b,"bill.xlsx");
+    $("btnCmp").disabled=false; compare();
+  }catch(e){ say("❌ โหลดไม่สำเร็จ: "+e.message+" — กรุณาใช้ปุ่มอัปโหลดไฟล์แทน","m-err"); }
+};
+$("fileA").onchange=async e=>{ if(e.target.files[0]){ setFile("A",await readLocal(e.target.files[0]),e.target.files[0].name); if(S.B){$("btnCmp").disabled=false;compare();} } };
+$("fileB").onchange=async e=>{ if(e.target.files[0]){ setFile("B",await readLocal(e.target.files[0]),e.target.files[0].name); if(S.A){$("btnCmp").disabled=false;compare();} } };
+$("btnCmp").onclick=compare;
+$("btnCsv").onclick=exportCSV;
+$("q").oninput=drawTable;
+$("fFilter").onchange=e=>{S.only=e.target.value;drawTable();};
+$("optZero").onchange=$("optCase").onchange=$("optName").onchange=()=>{ if(S.result) compare(); };
+$("shA").onchange=$("shB").onchange=()=>{ if(S.A&&S.B) compare(); };
+window.addEventListener("load",()=>$("btnLoad").click());
+</script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เปรียบเทียบ limit0.xlsx ↔ limit.xlsx (ACC = TEXT)</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root{--card:#fff;--line:#e2e8f0;--txt:#0f172a;--mut:#64748b;--pri:#0d9488;
+        --ok:#16a34a;--del:#dc2626;--warn:#d97706;--chg:#7c3aed;--up:#16a34a;--dn:#dc2626}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Sarabun","Segoe UI",Tahoma,sans-serif;background:#f1f5f9;color:var(--txt)}
+  header{background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;padding:22px 24px}
+  header h1{margin:0;font-size:20px} header p{margin:6px 0 0;font-size:13px;opacity:.92}
+  .wrap{max-width:1600px;margin:0 auto;padding:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  h3{margin:0 0 10px;font-size:15px}
+  label{font-size:13px;color:var(--mut)}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit}
+  input[type=file]{font-size:12px;margin-top:6px}
+  button{background:var(--pri);color:#fff;border:0;padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+  button.sec{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+  button.mini{padding:4px 10px;font-size:12px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+  .stat .n{font-size:25px;font-weight:700;line-height:1.15}
+  .stat .l{font-size:12px;color:var(--mut);margin-top:4px}
+  .s-eq .n{color:var(--ok)}.s-chg .n{color:var(--chg)}.s-add .n{color:#1d4ed8}.s-del .n{color:var(--del)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;white-space:nowrap}
+  th{background:#f8fafc;position:sticky;top:0;z-index:2;font-size:12px}
+  .tbl-wrap{max-height:600px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .old{color:var(--del);text-decoration:line-through}
+  .new{color:var(--ok);font-weight:600}
+  .diffcell{background:#fef9c3}
+  .acc{font-family:Consolas,monospace;font-weight:600}
+  .num{text-align:right;font-family:Consolas,monospace}
+  .up{color:var(--up);font-weight:700}.dn{color:var(--dn);font-weight:700}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tab{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;font-size:13px}
+  .tab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600}
+  .b-chg{background:#ede9fe;color:#6d28d9}.b-add{background:#dbeafe;color:#1d4ed8}
+  .b-del{background:#fee2e2;color:#b91c1c}.b-eq{background:#dcfce7;color:#166534}
+  .b-skip{background:#f1f5f9;color:#64748b;text-decoration:line-through}
+  .msg{padding:10px 12px;border-radius:8px;font-size:13px;margin-top:8px}
+  .m-ok{background:#dcfce7;color:#166534}.m-err{background:#fee2e2;color:#991b1b}.m-info{background:#e0f2fe;color:#075985}
+  .hint{font-size:12px;color:var(--mut);margin-top:6px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px}
+  #cols{display:flex;flex-wrap:wrap;gap:8px;max-height:170px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px}
+  #cols label{background:#f8fafc;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--txt);cursor:pointer;display:flex;gap:6px;align-items:center}
+  #cols label.numc{background:#ecfeff;border-color:#a5f3fc}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 เปรียบเทียบไฟล์ limit0.xlsx ↔ limit.xlsx</h1>
+  <p>คีย์จับคู่ = <b>ACC (อ่านเป็น TEXT เสมอ)</b> · ข้ามคอลัมน์ <b>NO. / CHANNEE / __PowerAppsId__</b> · คำนวณผลต่างวงเงิน (Δ) อัตโนมัติ</p>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h3>1) แหล่งข้อมูล</h3>
+    <div class="grid2">
+      <div>
+        <label>ไฟล์เดิม (A) : limit0.xlsx</label>
+        <input type="text" id="urlA" value="https://github.com/aklaytae/data-portal/blob/main/backend/limit0.xlsx">
+        <input type="file" id="fileA" accept=".xlsx,.xls,.csv">
+        <div id="stA" class="hint">ยังไม่ได้โหลด</div>
+        <select id="shA" style="margin-top:6px;display:none"></select>
+      </div>
+      <div>
+        <label>ไฟล์ใหม่ (B) : limit.xlsx</label>
+        <input type="text" id="urlB" value="https://github.com/aklaytae/data-portal/blob/main/backend/limit.xlsx">
+        <input type="file" id="fileB" accept=".xlsx,.xls,.csv">
+        <div id="stB" class="hint">ยังไม่ได้โหลด</div>
+        <select id="shB" style="margin-top:6px;display:none"></select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnLoad">⬇️ โหลดจาก GitHub &amp; เปรียบเทียบ</button>
+      <button id="btnCmp" class="sec" disabled>🔁 เปรียบเทียบใหม่</button>
+      <button id="btnCsv" class="sec" disabled>💾 Export CSV</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <span class="chk"><input type="checkbox" id="optZero"> ตัดศูนย์นำหน้า ACC ตอนจับคู่</span>
+      <span class="chk"><input type="checkbox" id="optCase" checked> ไม่สนตัวพิมพ์เล็ก/ใหญ่</span>
+      <span class="chk">ค่าคลาดเคลื่อนตัวเลข ±<input type="number" id="optTol" value="0" step="0.01" style="width:90px"></span>
+    </div>
+    <div style="margin-top:10px">
+      <label>🚫 ข้ามคอลัมน์ (คั่นด้วย , )</label>
+      <input type="text" id="optSkip" value="NO., CHANNEE, __PowerAppsId__">
+    </div>
+    <div id="msg"></div>
+    <div class="hint">* เปิดจากเครื่อง (file://) แล้วโหลด GitHub ไม่ได้ → ใช้ปุ่มเลือกไฟล์อัปโหลดแทนได้ทันที</div>
+  </div>
+
+  <div class="card" id="colCard" style="display:none">
+    <h3>2) เลือกคอลัมน์ที่ต้องการเปรียบเทียบ <span class="hint">(สีฟ้า = คอลัมน์ตัวเลข)</span></h3>
+    <div id="cols"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="sec mini" id="cAll">เลือกทั้งหมด</button>
+      <button class="sec mini" id="cNone">ไม่เลือกเลย</button>
+      <button class="sec mini" id="cNum">เฉพาะคอลัมน์ตัวเลข</button>
+      <span class="hint" id="keyInfo"></span>
+    </div>
+    <div id="skipInfo"></div>
+    <div id="colWarn"></div>
+  </div>
+
+  <div class="card" id="sumCard" style="display:none">
+    <h3>3) สรุปผลการเปรียบเทียบ</h3>
+    <div class="stats" id="stats"></div>
+    <div style="margin-top:18px">
+      <h3>ความต่างรายคอลัมน์</h3>
+      <div class="tbl-wrap" style="max-height:none"><table id="fieldTbl"></table></div>
+    </div>
+    <div id="numBox" style="margin-top:18px"></div>
+    <div id="dupWarn"></div>
+  </div>
+
+  <div class="card" id="detCard" style="display:none">
+    <h3>4) รายละเอียดความแตกต่าง</h3>
+    <div class="tabs" id="tabs"></div>
+    <div class="row" style="margin-bottom:10px">
+      <input type="text" id="q" placeholder="🔍 ค้นหา ACC หรือค่าใด ๆ ..." style="max-width:340px">
+      <select id="fFilter" style="max-width:260px"></select>
+      <span class="hint" id="cnt"></span>
+    </div>
+    <div class="tbl-wrap"><table id="dataTbl"></table></div>
+  </div>
+
+</div>
+
+<script>
+/* ============ ค่าคงที่ ============ */
+const ACC_ALIAS=["ACC","ACCNO","ACCOUNT","ACCOUNTNO","ACCT","ACCTNO","CUSTCODE","CUSTOMERCODE","เลขที่บัญชี","บัญชี"];
+const S={A:null,B:null,res:null,cols:[],sel:new Set(),numSet:new Set(),tab:"changed",only:"ALL"};
+
+/* ============ helper ============ */
+const $=id=>document.getElementById(id);
+const nk=s=>String(s??"").toUpperCase().replace(/[\s._\-\/\\()#]/g,"").trim();  /* NO. → NO , __PowerAppsId__ → POWERAPPSID */
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>n==null?"":n.toLocaleString(undefined,{maximumFractionDigits:2});
+const sgn=n=>(n>0?"+":"")+fmt(n);
+const skipSet=()=>new Set($("optSkip").value.split(",").map(nk).filter(Boolean));
+function toRaw(u){u=(u||"").trim();
+  if(u.includes("github.com")&&u.includes("/blob/"))
+    u=u.replace("https://github.com/","https://raw.githubusercontent.com/").replace("/blob/","/");
+  return u;}
+function say(h,c){$("msg").innerHTML=`<div class="msg ${c}">${h}</div>`;}
+
+/* ---- อ่านเซลล์เป็นข้อความเสมอ (ACC = TEXT) ---- */
+function cellText(c){
+  if(c==null) return "";
+  if(c.t==="n"){const v=c.v;
+    if(Number.isInteger(v)) return String(v);
+    if(Math.abs(v)>=1e15) return BigInt(Math.round(v)).toString();
+    return String(v);}
+  if(c.t==="b") return c.v?"TRUE":"FALSE";
+  if(c.t==="d") return c.w||String(c.v);
+  if(c.v!=null) return String(c.v);
+  return c.w||"";
+}
+/* ---- ชีต -> ตาราง ---- */
+function sheetToTable(ws){
+  if(!ws||!ws["!ref"]) return {headers:[],rows:[]};
+  const R=XLSX.utils.decode_range(ws["!ref"]),g=[];
+  for(let r=R.s.r;r<=R.e.r;r++){const l=[];
+    for(let c=R.s.c;c<=R.e.c;c++) l.push(cellText(ws[XLSX.utils.encode_cell({r,c})]).trim());
+    g.push(l);}
+  let hi=-1;
+  for(let i=0;i<Math.min(25,g.length);i++)
+    if(g[i].map(nk).some(v=>ACC_ALIAS.map(nk).includes(v))){hi=i;break;}
+  if(hi<0){let best=-1,bc=-1;
+    for(let i=0;i<Math.min(10,g.length);i++){const c=g[i].filter(v=>v!=="").length;if(c>bc){bc=c;best=i;}}
+    hi=best;}
+  if(hi<0) return {headers:[],rows:[]};
+  const headers=g[hi].map((h,i)=>h||("COL"+(i+1))),rows=[];
+  for(let i=hi+1;i<g.length;i++){
+    if(g[i].every(v=>v==="")) continue;
+    rows.push({excelRow:i+1+R.s.r,cells:g[i]});
+  }
+  return {headers,rows};
+}
+/* ---- normalize ---- */
+function normAcc(v){let s=String(v??"").trim().replace(/^['`]+/,"").replace(/[\s,]/g,"");
+  if(/^\d+\.0+$/.test(s)) s=s.split(".")[0]; return s;}
+function keyAcc(v){let k=normAcc(v).toUpperCase(); if($("optZero").checked)k=k.replace(/^0+/,"")||"0"; return k;}
+function num(v){
+  if(v==null) return null;
+  let s=String(v).trim().replace(/[, \u00A0฿$]/g,"");
+  if(s==="") return null;
+  if(/^\(.*\)$/.test(s)) s="-"+s.slice(1,-1);
+  return /^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(s)?parseFloat(s):null;
+}
+function normTxt(v){let s=String(v??"").trim().replace(/\s+/g," ");
+  return $("optCase").checked?s.toUpperCase():s;}
+function isDiff(av,bv,isNum){
+  if(isNum){const a=num(av),b=num(bv),tol=parseFloat($("optTol").value)||0;
+    if(a===null&&b===null) return normTxt(av)!==normTxt(bv);
+    if(a===null||b===null) return true;
+    return Math.abs(a-b)>tol;}
+  return normTxt(av)!==normTxt(bv);
+}
+
+/* ============ โหลดไฟล์ ============ */
+async function loadURL(u){const r=await fetch(toRaw(u)+"?t="+Date.now());
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return XLSX.read(await r.arrayBuffer(),{type:"array",raw:true});}
+function readLocal(f){return new Promise((res,rej)=>{const fr=new FileReader();
+  fr.onload=e=>res(XLSX.read(new Uint8Array(e.target.result),{type:"array",raw:true}));
+  fr.onerror=rej;fr.readAsArrayBuffer(f);});}
+function setFile(t,wb,name){S[t]={wb,name};const s=$("sh"+t);
+  s.innerHTML=wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join("");
+  s.style.display=wb.SheetNames.length>1?"block":"none";
+  $("st"+t).innerHTML=`✅ <b>${esc(name)}</b> — ชีต: ${wb.SheetNames.length}`;}
+
+/* ============ เตรียมคอลัมน์ ============ */
+function prepare(){
+  const tA=sheetToTable(S.A.wb.Sheets[$("shA").value||S.A.wb.SheetNames[0]]);
+  const tB=sheetToTable(S.B.wb.Sheets[$("shB").value||S.B.wb.SheetNames[0]]);
+  S.tA=tA;S.tB=tB;
+  const idxA={},idxB={};
+  tA.headers.forEach((h,i)=>{if(nk(h)&&idxA[nk(h)]===undefined)idxA[nk(h)]=i;});
+  tB.headers.forEach((h,i)=>{if(nk(h)&&idxB[nk(h)]===undefined)idxB[nk(h)]=i;});
+  S.idxA=idxA;S.idxB=idxB;
+  const findAcc=idx=>{for(const a of ACC_ALIAS.map(nk)) if(idx[a]!==undefined) return a;
+    return Object.keys(idx).find(k=>k.startsWith("ACC"))??null;};
+  S.accA=findAcc(idxA);S.accB=findAcc(idxB);
+
+  const SKIP=skipSet();                                   /* ⬅️ คอลัมน์ที่สั่งข้าม */
+  const skipped=new Set();
+  const seen=new Set(),cols=[];
+  tB.headers.forEach(h=>{const k=nk(h);
+    if(!k||seen.has(k)) return;
+    if(idxA[k]===undefined) return;
+    seen.add(k);
+    if(SKIP.has(k)){skipped.add(h);return;}               /* ⬅️ ตัดออก */
+    cols.push({key:k,label:h});});
+  tA.headers.forEach(h=>{if(SKIP.has(nk(h))) skipped.add(h);});
+
+  const onlyA=tA.headers.filter(h=>nk(h)&&idxB[nk(h)]===undefined&&!SKIP.has(nk(h)));
+  const onlyB=tB.headers.filter(h=>nk(h)&&idxA[nk(h)]===undefined&&!SKIP.has(nk(h)));
+  S.cols=cols.filter(c=>c.key!==S.accA&&c.key!==S.accB);
+
+  S.numSet=new Set();
+  S.cols.forEach(c=>{let n=0,t=0;
+    const scan=(tt,idx)=>tt.rows.slice(0,600).forEach(r=>{const v=r.cells[idx[c.key]];
+      if(String(v??"").trim()!==""){t++;if(num(v)!==null)n++;}});
+    scan(tA,idxA);scan(tB,idxB);
+    if(t>0&&n/t>=0.8) S.numSet.add(c.key);});
+  if(!S.sel.size||[...S.sel].some(k=>!S.cols.find(c=>c.key===k))) S.sel=new Set(S.cols.map(c=>c.key));
+
+  $("colCard").style.display="block";
+  $("cols").innerHTML=S.cols.map(c=>
+    `<label class="${S.numSet.has(c.key)?"numc":""}"><input type="checkbox" data-k="${c.key}" ${S.sel.has(c.key)?"checked":""}>${esc(c.label)}${S.numSet.has(c.key)?" 🔢":""}</label>`).join("")
+    ||'<span class="hint">ไม่พบคอลัมน์ร่วมกัน</span>';
+  [...$("cols").querySelectorAll("input")].forEach(el=>el.onchange=()=>{
+    el.checked?S.sel.add(el.dataset.k):S.sel.delete(el.dataset.k);compare();});
+  $("keyInfo").innerHTML=`🔑 คีย์: <b>ACC</b> → A[${esc(S.accA?tA.headers[idxA[S.accA]]:"ไม่พบ")}] / B[${esc(S.accB?tB.headers[idxB[S.accB]]:"ไม่พบ")}] — อ่านเป็น TEXT`;
+  $("skipInfo").innerHTML = skipped.size
+    ? `<div class="hint" style="margin-top:8px">🚫 ข้ามคอลัมน์: ${[...skipped].map(h=>`<span class="badge b-skip">${esc(h)}</span>`).join(" ")}</div>`
+    : `<div class="hint" style="margin-top:8px">🚫 ไม่พบคอลัมน์ที่ตั้งให้ข้ามในไฟล์นี้</div>`;
+  $("colWarn").innerHTML=(onlyA.length||onlyB.length)
+    ? `<div class="msg m-info">ℹ️ คอลัมน์ที่มีเฉพาะไฟล์เดียว (ไม่นำมาเทียบ) — ${onlyA.length?"<b>เฉพาะ limit0:</b> "+onlyA.map(esc).join(", "):""} ${onlyB.length?" &nbsp;<b>เฉพาะ limit:</b> "+onlyB.map(esc).join(", "):""}</div>`:"";
+  return !!(S.accA&&S.accB);
+}
+
+/* ============ เปรียบเทียบ ============ */
+function compare(){
+  if(!S.A||!S.B){say("⚠️ ต้องมีทั้ง 2 ไฟล์ก่อน","m-err");return;}
+  if(!prepare()){say("❌ ไม่พบคอลัมน์ ACC ในไฟล์","m-err");return;}
+  const {tA,tB,idxA,idxB}=S,F=S.cols.filter(c=>S.sel.has(c.key));
+
+  const index=(t,idx,acc)=>{const m=new Map(),dup=[];let n=0;
+    t.rows.forEach(r=>{const raw=r.cells[idx[acc]];
+      if(normAcc(raw)==="") return; n++;
+      const k=keyAcc(raw),o={acc:normAcc(raw),excelRow:r.excelRow,v:{}};
+      S.cols.forEach(c=>o.v[c.key]=r.cells[idx[c.key]]??"");
+      if(!m.has(k))m.set(k,[]);else dup.push(k);
+      m.get(k).push(o);});
+    return {m,dup:[...new Set(dup)],count:n};};
+  const iA=index(tA,idxA,S.accA),iB=index(tB,idxB,S.accB);
+
+  const changed=[],added=[],removed=[],same=[];
+  const fd={},net={},sumA={},sumB={},dChg={},dAdd={},dDel={};
+  F.forEach(c=>{fd[c.key]=0;net[c.key]=0;sumA[c.key]=0;sumB[c.key]=0;dChg[c.key]=0;dAdd[c.key]=0;dDel[c.key]=0;});
+  const isN=k=>S.numSet.has(k);
+
+  iA.m.forEach(a=>a.forEach(r=>F.forEach(c=>{if(isN(c.key)){const v=num(r.v[c.key]);if(v!==null)sumA[c.key]+=v;}})));
+  iB.m.forEach(a=>a.forEach(r=>F.forEach(c=>{if(isN(c.key)){const v=num(r.v[c.key]);if(v!==null)sumB[c.key]+=v;}})));
+
+  new Set([...iA.m.keys(),...iB.m.keys()]).forEach(k=>{
+    const a=iA.m.get(k)||[],b=iB.m.get(k)||[],n=Math.max(a.length,b.length);
+    for(let i=0;i<n;i++){
+      const ra=a[i],rb=b[i];
+      if(ra&&rb){
+        const diffs=F.filter(c=>isDiff(ra.v[c.key],rb.v[c.key],isN(c.key))).map(c=>c.key);
+        if(diffs.length){
+          diffs.forEach(k2=>{fd[k2]++;
+            if(isN(k2)){const x=num(ra.v[k2])||0,y=num(rb.v[k2])||0;net[k2]+=y-x;dChg[k2]+=y-x;}});
+          changed.push({acc:rb.acc||ra.acc,a:ra,b:rb,diffs});
+        } else same.push({acc:ra.acc,a:ra,b:rb,diffs:[]});
+      } else if(rb){
+        F.forEach(c=>{if(isN(c.key)){const y=num(rb.v[c.key]);if(y!==null){net[c.key]+=y;dAdd[c.key]+=y;}}});
+        added.push({acc:rb.acc,b:rb,diffs:[]});
+      } else {
+        F.forEach(c=>{if(isN(c.key)){const x=num(ra.v[c.key]);if(x!==null){net[c.key]-=x;dDel[c.key]-=x;}}});
+        removed.push({acc:ra.acc,a:ra,diffs:[]});
+      }
+    }});
+  const srt=(x,y)=>x.acc.localeCompare(y.acc,undefined,{numeric:true});
+  [changed,added,removed,same].forEach(a=>a.sort(srt));
+
+  S.res={changed,added,removed,same,fd,net,sumA,sumB,dChg,dAdd,dDel,iA,iB,F};
+  render();
+  say(`✅ เปรียบเทียบสำเร็จ | limit0: <b>${iA.count.toLocaleString()}</b> แถว · limit: <b>${iB.count.toLocaleString()}</b> แถว · เทียบ ${F.length} คอลัมน์ (ข้าม NO. / CHANNEE / __PowerAppsId__)`,"m-ok");
+  $("btnCsv").disabled=false;
+}
+
+/* ============ แสดงผล ============ */
+function render(){
+  const R=S.res,matched=R.changed.length+R.same.length,pct=matched?R.changed.length/matched*100:0;
+  $("sumCard").style.display="block";$("detCard").style.display="block";
+  $("stats").innerHTML=`
+    <div class="stat"><div class="n">${R.iA.count.toLocaleString()}</div><div class="l">แถวใน limit0 (A)</div></div>
+    <div class="stat"><div class="n">${R.iB.count.toLocaleString()}</div><div class="l">แถวใน limit (B)</div></div>
+    <div class="stat s-eq"><div class="n">${R.same.length.toLocaleString()}</div><div class="l">เหมือนกันทุกคอลัมน์</div></div>
+    <div class="stat s-chg"><div class="n">${R.changed.length.toLocaleString()}</div><div class="l">มีการแก้ไข (${pct.toFixed(2)}%)</div></div>
+    <div class="stat s-add"><div class="n">${R.added.length.toLocaleString()}</div><div class="l">ACC เพิ่มใหม่</div></div>
+    <div class="stat s-del"><div class="n">${R.removed.length.toLocaleString()}</div><div class="l">ACC ที่หายไป</div></div>
+    <div class="stat"><div class="n" style="color:var(--warn)">${(R.changed.length+R.added.length+R.removed.length).toLocaleString()}</div><div class="l">รวมความต่าง</div></div>`;
+
+  $("fieldTbl").innerHTML=`<tr><th>คอลัมน์</th><th>ชนิด</th><th>จำนวนแถวที่ต่าง</th><th>% (จาก ${matched.toLocaleString()} คู่)</th><th>ผลต่างสุทธิ (Δ)</th><th>สถานะ</th></tr>`+
+    R.F.map(c=>{const n=R.fd[c.key],p=matched?n/matched*100:0,isN=S.numSet.has(c.key);
+      return `<tr><td><b>${esc(c.label)}</b></td><td>${isN?"🔢 ตัวเลข":"🔤 ข้อความ"}</td>
+        <td class="num">${n.toLocaleString()}</td><td class="num">${p.toFixed(2)}%</td>
+        <td class="num ${isN?(R.net[c.key]>0?"up":R.net[c.key]<0?"dn":""):""}">${isN?sgn(R.net[c.key]):"-"}</td>
+        <td>${n?'<span class="badge b-chg">ต่างกัน</span>':'<span class="badge b-eq">ตรงกัน</span>'}</td></tr>`;}).join("")+
+    `<tr style="background:#f8fafc"><td><b>ACC (คีย์)</b></td><td>🔤 TEXT</td>
+      <td class="num">${(R.added.length+R.removed.length).toLocaleString()}</td><td class="num">-</td><td class="num">-</td>
+      <td>เพิ่ม ${R.added.length} / หาย ${R.removed.length}</td></tr>`;
+
+  const nums=R.F.filter(c=>S.numSet.has(c.key));
+  $("numBox").innerHTML=nums.length?`<h3>สรุปยอดรวมเชิงตัวเลข (เช่น วงเงิน LIMIT)</h3>
+    <div class="tbl-wrap" style="max-height:none"><table>
+    <tr><th>คอลัมน์</th><th>ยอดรวม limit0</th><th>ยอดรวม limit</th><th>ผลต่าง</th><th>%</th>
+        <th>จากแถวที่แก้ไข</th><th>จาก ACC ใหม่</th><th>จาก ACC ที่หาย</th></tr>`+
+    nums.map(c=>{const a=R.sumA[c.key],b=R.sumB[c.key],d=b-a,p=a?d/a*100:0;
+      return `<tr><td><b>${esc(c.label)}</b></td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td>
+        <td class="num ${d>0?"up":d<0?"dn":""}">${sgn(d)}</td><td class="num ${d>0?"up":d<0?"dn":""}">${a?sgn(p)+"%":"-"}</td>
+        <td class="num">${sgn(R.dChg[c.key])}</td><td class="num">${sgn(R.dAdd[c.key])}</td><td class="num">${sgn(R.dDel[c.key])}</td></tr>`;}).join("")
+    +`</table></div>`:"";
+
+  const dups=[...new Set([...R.iA.dup,...R.iB.dup])];
+  $("dupWarn").innerHTML=dups.length?`<div class="msg m-info">ℹ️ พบ ACC ซ้ำ ${dups.length} รายการ (จับคู่ตามลำดับที่พบ): <b>${dups.slice(0,15).map(esc).join(", ")}${dups.length>15?" ...":""}</b></div>`:"";
+
+  $("tabs").innerHTML=[["changed",`✏️ แก้ไข (${R.changed.length})`],["added",`➕ ACC ใหม่ (${R.added.length})`],
+    ["removed",`➖ ACC หาย (${R.removed.length})`],["same",`✅ เหมือนกัน (${R.same.length})`],["all","📋 ทั้งหมด"]]
+    .map(([k,l])=>`<div class="tab ${S.tab===k?"active":""}" data-t="${k}">${l}</div>`).join("");
+  [...$("tabs").children].forEach(el=>el.onclick=()=>{S.tab=el.dataset.t;render();});
+  $("fFilter").innerHTML=`<option value="ALL">— กรองตามคอลัมน์ที่เปลี่ยน: ทั้งหมด —</option>`+
+    R.F.map(c=>`<option value="${c.key}">เฉพาะที่ ${esc(c.label)} เปลี่ยน (${R.fd[c.key]})</option>`).join("");
+  $("fFilter").value=S.only;
+  drawTable();
+}
+function rowsForTab(){const R=S.res;
+  if(S.tab==="all") return [...R.changed.map(r=>({...r,st:"changed"})),...R.added.map(r=>({...r,st:"added"})),
+    ...R.removed.map(r=>({...r,st:"removed"})),...R.same.map(r=>({...r,st:"same"}))];
+  return R[S.tab].map(r=>({...r,st:S.tab}));}
+function drawTable(){
+  const R=S.res,F=R.F,q=$("q").value.trim().toUpperCase();
+  let rows=rowsForTab();
+  if(S.only!=="ALL") rows=rows.filter(r=>(r.diffs||[]).includes(S.only));
+  if(q) rows=rows.filter(r=>[r.acc,...F.map(c=>(r.a?r.a.v[c.key]:"")+" "+(r.b?r.b.v[c.key]:""))].join(" ").toUpperCase().includes(q));
+  $("cnt").textContent=`แสดง ${rows.length.toLocaleString()} รายการ`;
+  const cap=2000,show=rows.slice(0,cap);
+  const bd={changed:'<span class="badge b-chg">แก้ไข</span>',added:'<span class="badge b-add">เพิ่ม</span>',
+            removed:'<span class="badge b-del">หาย</span>',same:'<span class="badge b-eq">เหมือน</span>'};
+  let h=`<tr><th style="width:44px">#</th><th style="width:76px">สถานะ</th><th>ACC</th>`+
+    F.map(c=>`<th>${esc(c.label)}<div style="font-weight:400;color:#94a3b8">limit0 → limit</div></th>`).join("")+
+    `<th style="width:96px">แถว A/B</th></tr>`;
+  h+=show.map((r,i)=>{
+    const tds=F.map(c=>{
+      const isN=S.numSet.has(c.key),cls=isN?"num":"";
+      const av=r.a?r.a.v[c.key]:"",bv=r.b?r.b.v[c.key]:"";
+      if(r.st==="added")   return `<td class="${cls}"><span class="new">${esc(bv)||"-"}</span></td>`;
+      if(r.st==="removed") return `<td class="${cls}"><span class="old">${esc(av)||"-"}</span></td>`;
+      if(!isDiff(av,bv,isN)) return `<td class="${cls}">${esc(bv||av)}</td>`;
+      let d="";
+      if(isN){const x=num(av),y=num(bv);
+        if(x!==null&&y!==null){const v=y-x;d=` <span class="${v>0?"up":"dn"}">(${sgn(v)})</span>`;}}
+      return `<td class="${cls} diffcell"><span class="old">${esc(av)||"(ว่าง)"}</span> → <span class="new">${esc(bv)||"(ว่าง)"}</span>${d}</td>`;
+    }).join("");
+    return `<tr><td>${i+1}</td><td>${bd[r.st]}</td><td class="acc">${esc(r.acc)}</td>${tds}
+      <td style="color:#94a3b8;font-size:12px">${r.a?r.a.excelRow:"-"} / ${r.b?r.b.excelRow:"-"}</td></tr>`;}).join("");
+  if(!show.length) h+=`<tr><td colspan="${F.length+4}" style="text-align:center;color:#94a3b8;padding:22px">— ไม่มีข้อมูล —</td></tr>`;
+  if(rows.length>cap) h+=`<tr><td colspan="${F.length+4}" style="text-align:center;color:#d97706">แสดง ${cap.toLocaleString()} แถวแรกจาก ${rows.length.toLocaleString()} แถว (Export CSV เพื่อดูทั้งหมด)</td></tr>`;
+  $("dataTbl").innerHTML=h;
+}
+
+/* ============ Export ============ */
+function exportCSV(){
+  const R=S.res,F=R.F,head=["STATUS","ACC"];
+  F.forEach(c=>{head.push(c.label+"_limit0",c.label+"_limit");if(S.numSet.has(c.key))head.push(c.label+"_DIFF");});
+  head.push("COLS_CHANGED","ROW_A","ROW_B");
+  const out=[head];
+  const push=(st,r)=>{const line=[st,"'"+r.acc];
+    F.forEach(c=>{const av=r.a?r.a.v[c.key]:"",bv=r.b?r.b.v[c.key]:"";
+      line.push(av,bv);
+      if(S.numSet.has(c.key)){const x=num(av),y=num(bv);
+        line.push(x!==null&&y!==null?(y-x):(y!==null?y:(x!==null?-x:"")));}});
+    line.push((r.diffs||[]).map(k=>(F.find(c=>c.key===k)||{}).label||k).join(" | "),
+      r.a?r.a.excelRow:"",r.b?r.b.excelRow:"");
+    out.push(line);};
+  R.changed.forEach(r=>push("CHANGED",r));R.added.forEach(r=>push("ADDED",r));
+  R.removed.forEach(r=>push("REMOVED",r));R.same.forEach(r=>push("SAME",r));
+  const csv="\uFEFF"+out.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download="compare_limit0_vs_limit_"+new Date().toISOString().slice(0,10)+".csv";a.click();
+}
+
+/* ============ events ============ */
+$("btnLoad").onclick=async()=>{say("⏳ กำลังโหลดไฟล์จาก GitHub ...","m-info");
+  try{const [a,b]=await Promise.all([loadURL($("urlA").value),loadURL($("urlB").value)]);
+    setFile("A",a,"limit0.xlsx");setFile("B",b,"limit.xlsx");S.sel=new Set();
+    $("btnCmp").disabled=false;compare();}
+  catch(e){say("❌ โหลดไม่สำเร็จ: "+e.message+" — กรุณาใช้ปุ่มอัปโหลดไฟล์แทน","m-err");}};
+$("fileA").onchange=async e=>{if(e.target.files[0]){setFile("A",await readLocal(e.target.files[0]),e.target.files[0].name);S.sel=new Set();if(S.B){$("btnCmp").disabled=false;compare();}}};
+$("fileB").onchange=async e=>{if(e.target.files[0]){setFile("B",await readLocal(e.target.files[0]),e.target.files[0].name);S.sel=new Set();if(S.A){$("btnCmp").disabled=false;compare();}}};
+$("btnCmp").onclick=compare;$("btnCsv").onclick=exportCSV;
+$("q").oninput=drawTable;$("fFilter").onchange=e=>{S.only=e.target.value;drawTable();};
+$("optZero").onchange=$("optCase").onchange=()=>{if(S.res)compare();};
+$("optTol").oninput=()=>{if(S.res)compare();};
+$("optSkip").onchange=()=>{if(S.A&&S.B){S.sel=new Set();compare();}};
+$("shA").onchange=$("shB").onchange=()=>{if(S.A&&S.B){S.sel=new Set();compare();}};
+$("cAll").onclick=()=>{S.sel=new Set(S.cols.map(c=>c.key));compare();};
+$("cNone").onclick=()=>{S.sel=new Set();compare();};
+$("cNum").onclick=()=>{S.sel=new Set(S.cols.filter(c=>S.numSet.has(c.key)).map(c=>c.key));compare();};
+window.addEventListener("load",()=>$("btnLoad").click());
+</script>
+</body>
+</html>
