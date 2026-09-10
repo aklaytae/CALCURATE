@@ -159,7 +159,7 @@
         }
         const expense = summary * rate;
 
-        const ri = summary - totalDebt;
+        const ri = summary - totalDebt - expense;
         const dti = (salary > 0) ? (totalDebt / salary) * 100 : 0;
         const dscr = (totalDebt > 0) ? (summary - expense) / totalDebt : 0;
 
