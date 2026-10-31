@@ -54,6 +54,7 @@
   #cols{display:flex;flex-wrap:wrap;gap:8px;max-height:170px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px}
   #cols label{background:#f8fafc;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--txt);cursor:pointer;display:flex;gap:6px;align-items:center}
   #cols label.numc{background:#ecfeff;border-color:#a5f3fc}
+  input.pk,#pkAll{width:16px;height:16px;cursor:pointer;accent-color:var(--pri)}
 </style>
 </head>
 <body>
@@ -127,10 +128,34 @@
   <div class="card" id="detCard" style="display:none">
     <h3>4) รายละเอียดความแตกต่าง</h3>
     <div class="tabs" id="tabs"></div>
+    <div id="impBox" style="display:none;background:#f8fafc;border:1px dashed #94a3b8;border-radius:10px;padding:12px;margin-bottom:10px">
+      <div class="row">
+        <b style="font-size:13px">📥 นำเข้าไฟล์ Excel เพื่อเทียบกับ ACC ใหม่</b>
+        <input type="file" id="fileImp" accept=".xlsx,.xls,.csv" style="margin:0;width:auto">
+        <select id="shImp" style="display:none;width:auto;max-width:180px"></select>
+        <select id="colImp" style="display:none;width:auto;max-width:240px" title="คอลัมน์ ACC ในไฟล์ที่นำเข้า"></select>
+        <button class="sec mini" id="impClear" style="display:none">✖ ล้างไฟล์นำเข้า</button>
+      </div>
+      <div id="impInfo" class="hint"></div>
+      <div class="row" id="impAct" style="display:none;margin-top:8px">
+        <select id="impFilter" style="width:auto;max-width:260px">
+          <option value="ALL">— แสดง: ทั้งหมด —</option>
+          <option value="FOUND">แสดงเฉพาะที่ พบ ในไฟล์นำเข้า</option>
+          <option value="MISS">แสดงเฉพาะที่ ไม่พบ ในไฟล์นำเข้า</option>
+        </select>
+        <button class="sec mini" id="impPickFound">☑️ ติ๊กเฉพาะที่พบ (ทั้งหมด)</button>
+        <button class="sec mini" id="impPickMiss">☑️ ติ๊กเฉพาะที่ไม่พบ (ทั้งหมด)</button>
+      </div>
+    </div>
     <div class="row" style="margin-bottom:10px">
       <input type="text" id="q" placeholder="🔍 ค้นหา ACC หรือค่าใด ๆ ..." style="max-width:340px">
       <select id="fFilter" style="max-width:260px"></select>
       <span class="hint" id="cnt"></span>
+      <span id="pickBox" class="row" style="display:none;gap:6px">
+        <button class="sec mini" id="btnPickCsv">💾 Export ที่ติ๊ก (CSV)</button>
+        <button class="sec mini" id="btnPickXlsx">📗 Export ที่ติ๊ก (XLSX)</button>
+        <span class="hint" id="pickCnt"></span>
+      </span>
     </div>
     <div class="tbl-wrap"><table id="dataTbl"></table></div>
   </div>
@@ -140,7 +165,7 @@
 <script>
 /* ============ ค่าคงที่ ============ */
 const ACC_ALIAS=["ACC","ACCNO","ACCOUNT","ACCOUNTNO","ACCT","ACCTNO","CUSTCODE","CUSTOMERCODE","เลขที่บัญชี","บัญชี"];
-const S={A:null,B:null,res:null,cols:[],sel:new Set(),numSet:new Set(),tab:"changed",only:"ALL"};
+const S={A:null,B:null,res:null,cols:[],sel:new Set(),numSet:new Set(),tab:"changed",only:"ALL",pick:new Set(),curRows:[],imp:null,impWb:null,impT:null,impF:"ALL"};
 
 /* ============ helper ============ */
 const $=id=>document.getElementById(id);
@@ -216,7 +241,7 @@ async function loadURL(u){const r=await fetch(toRaw(u)+"?t="+Date.now());
 function readLocal(f){return new Promise((res,rej)=>{const fr=new FileReader();
   fr.onload=e=>res(XLSX.read(new Uint8Array(e.target.result),{type:"array",raw:true}));
   fr.onerror=rej;fr.readAsArrayBuffer(f);});}
-function setFile(t,wb,name){S[t]={wb,name};const s=$("sh"+t);
+function setFile(t,wb,name){S[t]={wb,name};S.pick.clear();const s=$("sh"+t);
   s.innerHTML=wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join("");
   s.style.display=wb.SheetNames.length>1?"block":"none";
   $("st"+t).innerHTML=`✅ <b>${esc(name)}</b> — ชีต: ${wb.SheetNames.length}`;}
@@ -376,14 +401,18 @@ function rowsForTab(){const R=S.res;
   return R[S.tab].map(r=>({...r,st:S.tab}));}
 function drawTable(){
   const R=S.res,F=R.F,q=$("q").value.trim().toUpperCase();
+  const isAdd=S.tab==="added",hasImp=isAdd&&!!S.imp,ex=(isAdd?1:0)+(hasImp?1:0);
   let rows=rowsForTab();
   if(S.only!=="ALL") rows=rows.filter(r=>(r.diffs||[]).includes(S.only));
+  if(hasImp&&S.impF!=="ALL") rows=rows.filter(r=>impHas(r.acc)===(S.impF==="FOUND"));
   if(q) rows=rows.filter(r=>[r.acc,...F.map(c=>(r.a?r.a.v[c.key]:"")+" "+(r.b?r.b.v[c.key]:""))].join(" ").toUpperCase().includes(q));
+  S.curRows=rows;
   $("cnt").textContent=`แสดง ${rows.length.toLocaleString()} รายการ`;
   const cap=2000,show=rows.slice(0,cap);
   const bd={changed:'<span class="badge b-chg">แก้ไข</span>',added:'<span class="badge b-add">เพิ่ม</span>',
             removed:'<span class="badge b-del">หาย</span>',same:'<span class="badge b-eq">เหมือน</span>'};
-  let h=`<tr><th style="width:44px">#</th><th style="width:76px">สถานะ</th><th>ACC</th>`+
+  const allOn=isAdd&&rows.length>0&&rows.every(r=>S.pick.has(r.b.excelRow));
+  let h=`<tr>${isAdd?`<th style="width:34px"><input type="checkbox" id="pkAll" title="เลือก/ยกเลิกทั้งหมด (ตามที่กรอง)" ${allOn?"checked":""}></th>`:""}<th style="width:44px">#</th><th style="width:76px">สถานะ</th><th>ACC</th>${hasImp?'<th>เทียบไฟล์นำเข้า</th>':""}`+
     F.map(c=>`<th>${esc(c.label)}<div style="font-weight:400;color:#94a3b8">limit0 → limit</div></th>`).join("")+
     `<th style="width:96px">แถว A/B</th></tr>`;
   h+=show.map((r,i)=>{
@@ -398,14 +427,17 @@ function drawTable(){
         if(x!==null&&y!==null){const v=y-x;d=` <span class="${v>0?"up":"dn"}">(${sgn(v)})</span>`;}}
       return `<td class="${cls} diffcell"><span class="old">${esc(av)||"(ว่าง)"}</span> → <span class="new">${esc(bv)||"(ว่าง)"}</span>${d}</td>`;
     }).join("");
-    return `<tr><td>${i+1}</td><td>${bd[r.st]}</td><td class="acc">${esc(r.acc)}</td>${tds}
+    const ck=isAdd?`<td><input type="checkbox" class="pk" data-r="${r.b.excelRow}" ${S.pick.has(r.b.excelRow)?"checked":""}></td>`:"";
+    return `<tr>${ck}<td>${i+1}</td><td>${bd[r.st]}</td><td class="acc">${esc(r.acc)}</td>${hasImp?`<td>${impHas(r.acc)?`<span class="badge b-eq">พบในไฟล์ (แถว ${S.imp.keys.get(keyAcc(r.acc))})</span>`:'<span class="badge b-del">ไม่พบ</span>'}</td>`:""}${tds}
       <td style="color:#94a3b8;font-size:12px">${r.a?r.a.excelRow:"-"} / ${r.b?r.b.excelRow:"-"}</td></tr>`;}).join("");
-  if(!show.length) h+=`<tr><td colspan="${F.length+4}" style="text-align:center;color:#94a3b8;padding:22px">— ไม่มีข้อมูล —</td></tr>`;
-  if(rows.length>cap) h+=`<tr><td colspan="${F.length+4}" style="text-align:center;color:#d97706">แสดง ${cap.toLocaleString()} แถวแรกจาก ${rows.length.toLocaleString()} แถว (Export CSV เพื่อดูทั้งหมด)</td></tr>`;
+  if(!show.length) h+=`<tr><td colspan="${F.length+4+ex}" style="text-align:center;color:#94a3b8;padding:22px">— ไม่มีข้อมูล —</td></tr>`;
+  if(rows.length>cap) h+=`<tr><td colspan="${F.length+4+ex}" style="text-align:center;color:#d97706">แสดง ${cap.toLocaleString()} แถวแรกจาก ${rows.length.toLocaleString()} แถว (ปุ่ม "เลือกทั้งหมด" จะเลือกครบทุกแถวที่กรอง)</td></tr>`;
   $("dataTbl").innerHTML=h;
+  updatePick();
+  updateImp();
 }
 
-/* ============ Export ============ */
+/* ============ Export ทั้งหมด (CSV) ============ */
 function exportCSV(){
   const R=S.res,F=R.F,head=["STATUS","ACC"];
   F.forEach(c=>{head.push(c.label+"_limit0",c.label+"_limit");if(S.numSet.has(c.key))head.push(c.label+"_DIFF");});
@@ -427,6 +459,90 @@ function exportCSV(){
   a.download="compare_limit0_vs_limit_"+new Date().toISOString().slice(0,10)+".csv";a.click();
 }
 
+/* ============ เลือก & Export เฉพาะ ACC ใหม่ ============ */
+function updatePick(){
+  const on=S.tab==="added";
+  $("pickBox").style.display=on?"flex":"none";
+  if(!on) return;
+  const n=S.res.added.filter(r=>S.pick.has(r.b.excelRow)).length;
+  $("pickCnt").textContent=`เลือกแล้ว ${n.toLocaleString()} / ${S.res.added.length.toLocaleString()}`;
+  $("btnPickCsv").disabled=$("btnPickXlsx").disabled=!n;
+}
+function pickedData(){
+  const R=S.res,F=R.F;
+  const rows=R.added.filter(r=>S.pick.has(r.b.excelRow));
+  const head=["ACC",...F.map(c=>c.label),"ROW_B"];
+  if(S.imp) head.push("IMPORT_MATCH");
+  const data=rows.map(r=>[r.acc,...F.map(c=>r.b.v[c.key]??""),r.b.excelRow,
+    ...(S.imp?[impHas(r.acc)?"พบในไฟล์นำเข้า":"ไม่พบในไฟล์นำเข้า"]:[])]);
+  return {head,data};
+}
+function exportPicked(type){
+  const {head,data}=pickedData();
+  if(!data.length){say("⚠️ ยังไม่ได้ติ๊กเลือกแถวใน ACC ใหม่","m-err");return;}
+  const stamp=new Date().toISOString().slice(0,10);
+  if(type==="xlsx"){
+    const ws=XLSX.utils.aoa_to_sheet([head,...data.map(r=>r.map(String))]);   /* ทุกเซลล์เป็น TEXT → ACC ไม่เพี้ยน */
+    Object.keys(ws).forEach(k=>{if(k[0]!=="!"&&ws[k].t==="n"){ws[k].t="s";ws[k].v=String(ws[k].v);}});
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"ACC_NEW");
+    XLSX.writeFile(wb,`acc_new_selected_${stamp}.xlsx`);
+  }else{
+    const rows=data.map(r=>{const x=r.slice();x[0]="'"+x[0];return x;});
+    const csv="\uFEFF"+[head,...rows].map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download=`acc_new_selected_${stamp}.csv`;a.click();
+  }
+  say(`✅ Export ACC ใหม่ที่ติ๊ก ${data.length.toLocaleString()} แถว`,"m-ok");
+}
+
+/* ============ นำเข้าไฟล์ Excel เทียบกับ ACC ใหม่ ============ */
+function impHas(acc){return !!S.imp&&S.imp.keys.has(keyAcc(acc));}
+function impSheetChanged(){
+  const I=S.impWb;if(!I) return;
+  const t=sheetToTable(I.wb.Sheets[$("shImp").value||I.wb.SheetNames[0]]);
+  S.impT=t;
+  const accs=ACC_ALIAS.map(nk);
+  let ci=t.headers.findIndex(h=>accs.includes(nk(h)));
+  if(ci<0) ci=t.headers.findIndex(h=>nk(h).startsWith("ACC"));
+  if(ci<0) ci=0;
+  $("colImp").innerHTML=t.headers.map((h,i)=>`<option value="${i}">${esc(h)}</option>`).join("");
+  $("colImp").value=String(ci);
+  $("colImp").style.display=t.headers.length?"block":"none";
+  buildImp();
+}
+function buildImp(noDraw){
+  const t=S.impT;if(!t) return;
+  const ci=+$("colImp").value||0,keys=new Map();let n=0;
+  t.rows.forEach(r=>{const raw=r.cells[ci];
+    if(normAcc(raw)==="") return; n++;
+    const k=keyAcc(raw); if(!keys.has(k)) keys.set(k,r.excelRow);});
+  S.imp={name:S.impWb.name,keys,count:n,col:t.headers[ci]};
+  S.impF="ALL";
+  if(!noDraw&&S.res) drawTable();
+}
+function updateImp(){
+  const on=S.tab==="added";
+  $("impBox").style.display=on?"block":"none";
+  if(!on) return;
+  const has=!!S.imp;
+  $("impAct").style.display=has?"flex":"none";
+  $("impClear").style.display=has?"inline-block":"none";
+  if(!has){$("impInfo").textContent="เลือกไฟล์ Excel/CSV ที่มีคอลัมน์ ACC — ระบบจะเทียบกับรายการ ACC ใหม่ (อ่านเป็น TEXT)";return;}
+  const A=S.res.added,addK=new Set(A.map(r=>keyAcc(r.acc)));
+  const found=A.filter(r=>impHas(r.acc)).length,miss=A.length-found;
+  let only=0;S.imp.keys.forEach((_,k)=>{if(!addK.has(k)) only++;});
+  $("impInfo").innerHTML=`✅ <b>${esc(S.imp.name)}</b> — คอลัมน์ ACC: <b>${esc(S.imp.col)}</b> · ${S.imp.count.toLocaleString()} แถว (ACC ไม่ซ้ำ ${S.imp.keys.size.toLocaleString()})<br>`+
+    `ACC ใหม่ ${A.length.toLocaleString()} รายการ → <span class="badge b-eq">พบในไฟล์นำเข้า ${found.toLocaleString()}</span> `+
+    `<span class="badge b-del">ไม่พบ ${miss.toLocaleString()}</span> · ACC ที่มีเฉพาะในไฟล์นำเข้า (ไม่อยู่ใน ACC ใหม่) <b>${only.toLocaleString()}</b>`;
+  $("impFilter").value=S.impF;
+}
+function pickByImp(found){
+  S.pick.clear();
+  S.res.added.forEach(r=>{if(impHas(r.acc)===found) S.pick.add(r.b.excelRow);});
+  drawTable();
+}
+
 /* ============ events ============ */
 $("btnLoad").onclick=async()=>{say("⏳ กำลังโหลดไฟล์จาก GitHub ...","m-info");
   try{const [a,b]=await Promise.all([loadURL($("urlA").value),loadURL($("urlB").value)]);
@@ -437,13 +553,52 @@ $("fileA").onchange=async e=>{if(e.target.files[0]){setFile("A",await readLocal(
 $("fileB").onchange=async e=>{if(e.target.files[0]){setFile("B",await readLocal(e.target.files[0]),e.target.files[0].name);S.sel=new Set();if(S.A){$("btnCmp").disabled=false;compare();}}};
 $("btnCmp").onclick=compare;$("btnCsv").onclick=exportCSV;
 $("q").oninput=drawTable;$("fFilter").onchange=e=>{S.only=e.target.value;drawTable();};
-$("optZero").onchange=$("optCase").onchange=()=>{if(S.res)compare();};
+$("optZero").onchange=$("optCase").onchange=()=>{if(S.imp)buildImp(true);if(S.res)compare();};
 $("optTol").oninput=()=>{if(S.res)compare();};
 $("optSkip").onchange=()=>{if(S.A&&S.B){S.sel=new Set();compare();}};
-$("shA").onchange=$("shB").onchange=()=>{if(S.A&&S.B){S.sel=new Set();compare();}};
+$("shA").onchange=$("shB").onchange=()=>{if(S.A&&S.B){S.sel=new Set();S.pick.clear();compare();}};
 $("cAll").onclick=()=>{S.sel=new Set(S.cols.map(c=>c.key));compare();};
 $("cNone").onclick=()=>{S.sel=new Set();compare();};
 $("cNum").onclick=()=>{S.sel=new Set(S.cols.filter(c=>S.numSet.has(c.key)).map(c=>c.key));compare();};
+
+/* ---- ติ๊กเลือก / Export เฉพาะ ACC ใหม่ ---- */
+$("dataTbl").addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="pkAll"){
+    S.curRows.forEach(r=>t.checked?S.pick.add(r.b.excelRow):S.pick.delete(r.b.excelRow));
+    drawTable();
+  }else if(t.classList.contains("pk")){
+    const k=+t.dataset.r;
+    t.checked?S.pick.add(k):S.pick.delete(k);
+    const all=S.curRows.length&&S.curRows.every(r=>S.pick.has(r.b.excelRow));
+    const pa=$("pkAll");if(pa)pa.checked=!!all;
+    updatePick();
+  }
+});
+$("btnPickCsv").onclick=()=>exportPicked("csv");
+$("btnPickXlsx").onclick=()=>exportPicked("xlsx");
+
+/* ---- ไฟล์นำเข้าเทียบ ACC ใหม่ ---- */
+$("fileImp").onchange=async e=>{
+  const f=e.target.files[0];if(!f) return;
+  try{
+    S.impWb={wb:await readLocal(f),name:f.name};
+    $("shImp").innerHTML=S.impWb.wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join("");
+    $("shImp").style.display=S.impWb.wb.SheetNames.length>1?"block":"none";
+    impSheetChanged();
+  }catch(err){say("❌ อ่านไฟล์นำเข้าไม่สำเร็จ: "+err.message,"m-err");}
+};
+$("shImp").onchange=impSheetChanged;
+$("colImp").onchange=()=>buildImp();
+$("impFilter").onchange=e=>{S.impF=e.target.value;drawTable();};
+$("impPickFound").onclick=()=>pickByImp(true);
+$("impPickMiss").onclick=()=>pickByImp(false);
+$("impClear").onclick=()=>{
+  S.imp=S.impWb=S.impT=null;S.impF="ALL";
+  $("fileImp").value="";$("shImp").style.display=$("colImp").style.display="none";
+  drawTable();
+};
+
 window.addEventListener("load",()=>$("btnLoad").click());
 </script>
 </body>
