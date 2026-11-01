@@ -519,7 +519,13 @@ function buildImp(noDraw){
     const k=keyAcc(raw); if(!keys.has(k)) keys.set(k,r.excelRow);});
   S.imp={name:S.impWb.name,keys,count:n,col:t.headers[ci]};
   S.impF="ALL";
-  if(!noDraw&&S.res) drawTable();
+  if(!noDraw&&S.res){autoPickImp();drawTable();}
+}
+/* ติ๊กถูกอัตโนมัติ: ACC ใหม่ที่พบในไฟล์นำเข้า (แทนที่รายการที่ติ๊กไว้เดิม) */
+function autoPickImp(){
+  if(!S.res||!S.imp) return;
+  S.pick.clear();
+  S.res.added.forEach(r=>{if(impHas(r.acc)) S.pick.add(r.b.excelRow);});
 }
 function updateImp(){
   const on=S.tab==="added";
@@ -553,7 +559,7 @@ $("fileA").onchange=async e=>{if(e.target.files[0]){setFile("A",await readLocal(
 $("fileB").onchange=async e=>{if(e.target.files[0]){setFile("B",await readLocal(e.target.files[0]),e.target.files[0].name);S.sel=new Set();if(S.A){$("btnCmp").disabled=false;compare();}}};
 $("btnCmp").onclick=compare;$("btnCsv").onclick=exportCSV;
 $("q").oninput=drawTable;$("fFilter").onchange=e=>{S.only=e.target.value;drawTable();};
-$("optZero").onchange=$("optCase").onchange=()=>{if(S.imp)buildImp(true);if(S.res)compare();};
+$("optZero").onchange=$("optCase").onchange=()=>{if(S.imp)buildImp(true);if(S.res)compare();if(S.imp&&S.res){autoPickImp();drawTable();}};
 $("optTol").oninput=()=>{if(S.res)compare();};
 $("optSkip").onchange=()=>{if(S.A&&S.B){S.sel=new Set();compare();}};
 $("shA").onchange=$("shB").onchange=()=>{if(S.A&&S.B){S.sel=new Set();S.pick.clear();compare();}};
