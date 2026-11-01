@@ -6,92 +6,154 @@
 <title>Vocab App</title>
 
 <style>
+  :root {
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --box: #f9fafb;
+    --blue: #2563eb;
+    --green: #16a34a;
+    --red: #dc2626;
+    --gray: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111827;
+      --card: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --border: #374151;
+      --box: #111827;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
   body {
-    font-family: Arial;
-    text-align: center;
-    padding: 10px;
+    font-family: -apple-system, "Segoe UI", "Noto Sans Thai", Arial, sans-serif;
     margin: 0;
-    background: #f5f5f5;
+    padding: 12px;
+    background: var(--bg);
+    color: var(--text);
+    text-align: center;
   }
 
   .container {
     max-width: 480px;
     margin: auto;
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--card);
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   }
 
-  #word {
+  .modes {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .modes button {
+    flex: 1;
+    padding: 8px;
+    font-size: 14px;
+    background: var(--box);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .modes button.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+
+  .progress-text {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .progress {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress div {
+    height: 100%;
+    width: 0;
+    background: var(--blue);
+    transition: width 0.25s;
+  }
+
+  .card {
+    min-height: 190px;
+    margin: 14px 0;
+    padding: 16px 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--box);
     cursor: pointer;
-    font-size: 28px;
-    margin: 15px 0;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
+  .card:hover { border-color: var(--blue); }
 
-  #word:hover {
-    color: blue;
-  }
-
-  #meaning {
-    font-size: 20px;
-    margin: 10px 0;
-  }
-
-  #example {
-    font-size: 16px;
-    color: gray;
-    margin: 10px 0;
-  }
+  #word { font-size: 32px; font-weight: 700; margin: 0 0 6px; }
+  #hint { font-size: 13px; color: var(--muted); }
+  #meaning { font-size: 22px; margin: 12px 0 6px; color: var(--blue); }
+  #example { font-size: 15px; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
 
   button {
     width: 100%;
-    margin: 5px 0;
+    margin: 4px 0;
     padding: 12px;
     font-size: 16px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
+    font-family: inherit;
   }
+  button:active { transform: scale(0.97); }
+  button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
-  button:active {
-    transform: scale(0.97);
-  }
+  .btn-row { display: flex; gap: 6px; }
+  .btn-row button { flex: 1; }
 
-  .btn-row {
-    display: flex;
-    gap: 5px;
-  }
+  .correct { background: var(--green); color: #fff; }
+  .wrong { background: var(--red); color: #fff; }
+  .normal { background: var(--blue); color: #fff; }
+  .ghost { background: var(--box); color: var(--text); border: 1px solid var(--border); }
 
-  .btn-row button {
-    flex: 1;
-  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  h3 { margin: 6px 0 10px; font-size: 16px; }
 
-  .correct { background: #4CAF50; color: white; }
-  .wrong { background: #f44336; color: white; }
-  .normal { background: #2196F3; color: white; }
+  .stats { display: flex; justify-content: space-around; font-size: 16px; }
 
   .box {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     padding: 10px;
-    margin-top: 10px;
     border-radius: 10px;
-    background: #fafafa;
+    background: var(--box);
+    color: var(--muted);
+    line-height: 1.9;
   }
-
-  .weak-word {
-    cursor: pointer;
-    color: blue;
+  .chip {
     display: inline-block;
-    margin: 3px;
+    margin: 2px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--blue);
+    background: transparent;
+    color: var(--blue);
+    font-size: 14px;
+    width: auto;
+    cursor: pointer;
   }
 
-  .stats {
-    display: flex;
-    justify-content: space-around;
-    font-size: 16px;
-  }
-
+  .keys { font-size: 12px; color: var(--muted); margin-top: 8px; }
 </style>
 </head>
 
@@ -99,282 +161,348 @@
 
 <div class="container">
 
-<h2 id="word" onclick="toggleMeaning()">👉 เริ่มเรียน</h2>
-<p id="meaning" style="display:none;"></p>
-<p id="example" style="display:none;"></p>
+  <div class="modes">
+    <button id="modeAll" class="active" onclick="setMode('all')">📖 ทุกคำ</button>
+    <button id="modeWeak" onclick="setMode('weak')">📚 เฉพาะที่จำไม่ได้</button>
+  </div>
 
-<div class="btn-row">
-  <button class="normal" onclick="nextWord()">ถัดไป</button>
-  <button class="normal" onclick="randomWord()">🎲 สุ่ม</button>
-</div>
+  <div class="progress-text" id="progressText"></div>
+  <div class="progress"><div id="bar"></div></div>
 
-<div class="btn-row">
-  <button class="correct" onclick="markCorrect()">✅ จำได้</button>
-  <button class="wrong" onclick="markWrong()">❌ จำไม่ได้</button>
-</div>
+  <div class="card" id="card" onclick="toggleMeaning()" role="button" tabindex="0" aria-label="แตะเพื่อดูความหมาย">
+    <h2 id="word">เริ่มเรียน</h2>
+    <div id="hint">แตะเพื่อดูความหมาย</div>
+    <p id="meaning" style="display:none;"></p>
+    <p id="example" style="display:none;"></p>
+  </div>
 
-<hr>
+  <button class="ghost" onclick="speak()">🔊 ฟังเสียงอ่าน</button>
 
-<h3>📊 สถิติ</h3>
-<div class="stats">
-  <div>✅ <span id="correct">0</span></div>
-  <div>❌ <span id="wrong">0</span></div>
-  <div>🎯 <span id="accuracy">0%</span></div>
-</div>
+  <div class="btn-row">
+    <button class="normal" onclick="prevWord()">⬅️ ก่อนหน้า</button>
+    <button class="normal" onclick="nextWord()">ถัดไป ➡️</button>
+  </div>
+  <div class="btn-row">
+    <button class="ghost" onclick="randomWord()">🎲 สุ่ม</button>
+    <button class="ghost" onclick="shuffleDeck()">🔀 สลับลำดับ</button>
+  </div>
 
-<hr>
+  <div class="btn-row">
+    <button class="correct" onclick="markCorrect()">✅ จำได้</button>
+    <button class="wrong" onclick="markWrong()">❌ จำไม่ได้</button>
+  </div>
 
-<h3>📚 คำที่จำไม่ได้</h3>
-<div id="weakList" class="box">ยังไม่มีคำที่จำไม่ได้</div>
+  <div class="keys">ปุ่มลัด: Space = พลิกการ์ด · ← → = เลื่อน · K = จำได้ · J = จำไม่ได้ · S = ฟังเสียง</div>
 
-<hr>
+  <hr>
 
-<button onclick="resetData()" style="background:#999;color:white;">🗑 รีเซ็ต</button>
+  <h3>📊 สถิติ</h3>
+  <div class="stats">
+    <div>✅ <span id="correct">0</span></div>
+    <div>❌ <span id="wrong">0</span></div>
+    <div>🎯 <span id="accuracy">0%</span></div>
+  </div>
+
+  <hr>
+
+  <h3>📚 คำที่จำไม่ได้ (<span id="weakCount">0</span>)</h3>
+  <div id="weakList" class="box"></div>
+
+  <hr>
+
+  <button onclick="resetData()" style="background:var(--gray);color:white;">🗑 รีเซ็ต</button>
 
 </div>
 
 <script>
 
 // ===== DATA =====
-let words = [
+const WORDS = [
 {word:"analyze",meaning:"วิเคราะห์",example:"We need to carefully analyze the data before making any important business decisions."},
-
 {word:"approach",meaning:"แนวทาง",example:"This new approach can help us solve the problem more efficiently and save time."},
-
 {word:"assess",meaning:"ประเมิน",example:"The manager will assess the employee's performance at the end of the year."},
-
 {word:"assume",meaning:"สมมติ",example:"You should not assume everything is correct without checking the information properly."},
-
 {word:"benefit",meaning:"ประโยชน์",example:"Regular exercise provides many long-term health benefits for both physical and mental well-being."},
-
 {word:"capacity",meaning:"ความสามารถ",example:"The system is running at full capacity and cannot handle more users at this time."},
-
 {word:"challenge",meaning:"ความท้าทาย",example:"Improving communication skills can be a big challenge for many people in the workplace."},
-
 {word:"complex",meaning:"ซับซ้อน",example:"This problem is too complex to solve without proper planning and teamwork."},
-
 {word:"concept",meaning:"แนวคิด",example:"The concept of this project is simple, but the execution requires careful attention."},
-
 {word:"conduct",meaning:"ดำเนินการ",example:"The company will conduct a meeting to discuss the future development plan."},
-
 {word:"consider",meaning:"พิจารณา",example:"You should consider all possible risks before making a final decision."},
-
 {word:"context",meaning:"บริบท",example:"Understanding the context of the situation will help you make a better judgement."},
-
 {word:"define",meaning:"กำหนด",example:"We need to clearly define our goals before starting the project."},
-
 {word:"develop",meaning:"พัฒนา",example:"It is important to develop new skills in order to stay competitive in the job market."},
-
 {word:"effective",meaning:"มีประสิทธิภาพ",example:"This method is very effective in improving the overall productivity of the team."},
-
 {word:"environment",meaning:"สิ่งแวดล้อม",example:"We must work together to protect the environment for future generations."},
-
 {word:"evaluate",meaning:"ประเมิน",example:"The teacher will evaluate the students' performance based on their work and participation."},
-
 {word:"feature",meaning:"คุณสมบัติ",example:"This application includes many useful features that help users manage their tasks efficiently."},
-
 {word:"focus",meaning:"โฟกัส",example:"You need to focus on your work if you want to complete it successfully and on time."},
-
 {word:"function",meaning:"ฟังก์ชัน",example:"Each button in this application has a specific function that helps users perform different tasks."},
-
 {word:"accurate",meaning:"ถูกต้องแม่นยำ",example:"It is important to provide accurate information when preparing financial reports."},
-
 {word:"achieve",meaning:"บรรลุ",example:"The team worked hard throughout the year to achieve its sales targets."},
-
 {word:"adapt",meaning:"ปรับตัว",example:"Employees must adapt to new technologies and changing business environments."},
-
 {word:"advance",meaning:"ก้าวหน้า",example:"The company continues to advance its digital transformation strategy."},
-
 {word:"alternative",meaning:"ทางเลือก",example:"We should consider an alternative solution if the current plan does not work."},
-
 {word:"annual",meaning:"ประจำปี",example:"The annual meeting will be held next month to discuss company performance."},
-
 {word:"appoint",meaning:"แต่งตั้ง",example:"The board decided to appoint a new manager for the regional office."},
-
 {word:"approve",meaning:"อนุมัติ",example:"The supervisor must approve all expense claims before payment is processed."},
-
 {word:"available",meaning:"พร้อมใช้งาน",example:"The latest version of the application is now available to all users."},
-
 {word:"awareness",meaning:"ความตระหนักรู้",example:"The campaign aims to increase public awareness about financial planning."},
-
 {word:"budget",meaning:"งบประมาณ",example:"Each department must manage its budget carefully throughout the year."},
-
 {word:"collaborate",meaning:"ร่วมมือ",example:"Different departments need to collaborate effectively to complete the project."},
-
 {word:"communication",meaning:"การสื่อสาร",example:"Good communication is essential for building strong relationships with customers."},
-
 {word:"competition",meaning:"การแข่งขัน",example:"The company faces strong competition from other businesses in the industry."},
-
 {word:"compliance",meaning:"การปฏิบัติตามกฎ",example:"All employees must ensure compliance with company policies and regulations."},
-
 {word:"confidence",meaning:"ความมั่นใจ",example:"Proper preparation can help employees gain confidence before presentations."},
-
 {word:"customer",meaning:"ลูกค้า",example:"Providing excellent service can improve customer satisfaction and loyalty."},
-
 {word:"decision",meaning:"การตัดสินใจ",example:"The management team will make a final decision after reviewing all options."},
-
 {word:"demand",meaning:"ความต้องการ",example:"The demand for digital banking services has increased significantly."},
-
 {word:"efficiency",meaning:"ประสิทธิภาพ",example:"Automation helps improve operational efficiency and reduce costs."},
-
 {word:"employee",meaning:"พนักงาน",example:"Each employee is encouraged to participate in professional development programs."},
-
 {word:"estimate",meaning:"ประมาณการ",example:"The finance department will estimate next year's operating expenses."},
-
 {word:"expand",meaning:"ขยาย",example:"The organization plans to expand its services to new regions."},
-
 {word:"experience",meaning:"ประสบการณ์",example:"Previous work experience can help candidates perform better in their roles."},
-
 {word:"finance",meaning:"การเงิน",example:"Finance professionals must understand both risks and opportunities in the market."},
-
 {word:"forecast",meaning:"คาดการณ์",example:"Analysts use historical data to forecast future business performance."},
-
 {word:"goal",meaning:"เป้าหมาย",example:"Setting clear goals helps employees stay motivated and focused."},
-
 {word:"guideline",meaning:"แนวทางปฏิบัติ",example:"Please follow the guidelines provided in the company handbook."},
-
 {word:"immediate",meaning:"ทันที",example:"The issue requires immediate attention to prevent further problems."},
-
 {word:"investment",meaning:"การลงทุน",example:"The bank offers several investment options for long-term financial growth."},
-
 {word:"leadership",meaning:"ภาวะผู้นำ",example:"Strong leadership plays a key role in organizational success."},
-
 {word:"management",meaning:"การบริหารจัดการ",example:"Effective management ensures that resources are used efficiently."},
-
 {word:"objective",meaning:"วัตถุประสงค์",example:"The main objective of the project is to improve customer service quality."},
-
 {word:"opportunity",meaning:"โอกาส",example:"This training program provides employees with opportunities for career growth."},
-
 {word:"organization",meaning:"องค์กร",example:"The organization encourages innovation and continuous improvement."},
-
 {word:"outcome",meaning:"ผลลัพธ์",example:"The outcome of the project exceeded everyone's expectations."},
-
 {word:"participate",meaning:"เข้าร่วม",example:"Employees are encouraged to participate in workshops and training sessions."},
-
 {word:"performance",meaning:"ผลการดำเนินงาน",example:"The company's performance improved significantly during the last quarter."},
-
 {word:"priority",meaning:"ลำดับความสำคัญ",example:"Customer satisfaction remains the organization's highest priority."},
-
 {word:"productivity",meaning:"ประสิทธิผลในการทำงาน",example:"Improved technology can increase employee productivity considerably."},
-
 {word:"project",meaning:"โครงการ",example:"The project was completed successfully within budget and on schedule."},
-
 {word:"quality",meaning:"คุณภาพ",example:"Maintaining high quality standards is essential for customer trust."},
-
 {word:"recommend",meaning:"แนะนำ",example:"I would recommend reviewing the report before submitting it."},
-
 {word:"resource",meaning:"ทรัพยากร",example:"Human resources are one of the most valuable assets of any organization."},
-
 {word:"schedule",meaning:"ตารางเวลา",example:"The project manager created a detailed schedule to track progress."},
-
 {word:"solution",meaning:"วิธีแก้ปัญหา",example:"The team developed an innovative solution to address customer concerns."},
-
 {word:"standard",meaning:"มาตรฐาน",example:"All products must meet industry standards before being released."},
-
 {word:"training",meaning:"การฝึกอบรม",example:"Regular training helps employees improve their knowledge and skills."},
-
 {word:"update",meaning:"ปรับปรุงข้อมูล",example:"Please update the system regularly to ensure security and reliability."},
-
 {word:"workflow",meaning:"กระบวนการทำงาน",example:"The new workflow reduced delays and improved overall productivity."}
-
 ];
 
-let weakWords=[],correct=0,wrong=0,index=0,isShown=false;
+// ===== STATE =====
+const STORE_KEY = "vocab_app_v2";
+const $ = id => document.getElementById(id);
 
-// ===== render =====
-function render(){
- if(index>=words.length) index=0;
- let c=words[index];
+let state = {
+  weak: [],          // เก็บเป็นคำศัพท์ (string)
+  correct: 0,
+  wrong: 0,
+  order: WORDS.map((_, i) => i), // ลำดับการ์ดของโหมด "ทุกคำ"
+  pos: 0,
+  mode: "all"
+};
+let isShown = false;
 
- word.innerText="👉 "+c.word;
- meaning.innerText=c.meaning;
- example.innerText=c.example;
-
- isShown=false;
- meaning.style.display="none";
- example.style.display="none";
-
- updateStats();
- updateWeak();
-}
-
-// ===== toggle =====
-function toggleMeaning(){
- isShown=!isShown;
- meaning.style.display=isShown?"block":"none";
- example.style.display=isShown?"block":"none";
-}
-
-// ===== control =====
-function nextWord(){ index++; render(); }
-function randomWord(){
- index=Math.floor(Math.random()*words.length);
- render();
-}
-
-// ===== learning =====
-function markWrong(){
- let c=words[index];
- if(!weakWords.some(w=>w.word===c.word)){
-   weakWords.push(c);
- }
- wrong++;
- render();
-}
-
-
-function markCorrect(){
-  let c = words[index];
-
-  // 🔥 ลบแบบ loop (เสถียรกว่า filter)
-  for (let i = 0; i < weakWords.length; i++) {
-    if (weakWords[i].word === c.word) {
-      weakWords.splice(i, 1);
-      break;
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (saved && Array.isArray(saved.order) && saved.order.length === WORDS.length) {
+      state = Object.assign(state, saved);
     }
+  } catch (e) {}
+}
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// ===== DECK =====
+// รายการการ์ดตามโหมดปัจจุบัน
+function deck() {
+  const all = state.order.map(i => WORDS[i]);
+  return state.mode === "weak" ? all.filter(w => state.weak.includes(w.word)) : all;
+}
+
+function current() {
+  const d = deck();
+  if (!d.length) return null;
+  if (state.pos >= d.length) state.pos = 0;
+  if (state.pos < 0) state.pos = d.length - 1;
+  return d[state.pos];
+}
+
+// ===== RENDER =====
+function render() {
+  const d = deck();
+  const c = current();
+
+  isShown = false;
+  $("meaning").style.display = "none";
+  $("example").style.display = "none";
+  $("hint").style.display = "block";
+
+  if (!c) {
+    $("word").innerText = state.mode === "weak" ? "🎉 ไม่มีคำที่จำไม่ได้" : "ไม่มีคำศัพท์";
+    $("hint").innerText = state.mode === "weak" ? "เยี่ยมมาก! กลับไปโหมด \"ทุกคำ\" เพื่อเรียนต่อ" : "";
+    $("progressText").innerText = "";
+    $("bar").style.width = "0%";
+  } else {
+    $("word").innerText = c.word;
+    $("hint").innerText = "แตะการ์ดเพื่อดูความหมาย";
+    $("meaning").innerText = c.meaning;
+    $("example").innerText = c.example;
+    $("progressText").innerText = `คำที่ ${state.pos + 1} / ${d.length}`;
+    $("bar").style.width = ((state.pos + 1) / d.length * 100) + "%";
   }
 
-  correct++;
+  $("modeAll").classList.toggle("active", state.mode === "all");
+  $("modeWeak").classList.toggle("active", state.mode === "weak");
 
-  render(); // ✅ อัปเดตทันที
+  updateStats();
+  updateWeak();
+  save();
 }
 
-// ===== weak list =====
-function updateWeak(){
- if(weakWords.length===0){
-   weakList.innerText="ยังไม่มีคำที่จำไม่ได้";
-   return;
- }
- weakList.innerHTML=weakWords.map((w,i)=>
-   `<span class="weak-word" onclick="showWeak(${i})">${w.word}</span>`
- ).join(", ");
+function showMeaning(show) {
+  if (!current()) return;
+  isShown = show;
+  $("meaning").style.display = show ? "block" : "none";
+  $("example").style.display = show ? "block" : "none";
+  $("hint").style.display = show ? "none" : "block";
 }
 
-function showWeak(i){
- let w=weakWords[i];
- word.innerText="👉 "+w.word;
- meaning.innerText=w.meaning;
- example.innerText=w.example;
- meaning.style.display="block";
- example.style.display="block";
+function toggleMeaning() { showMeaning(!isShown); }
+
+// ===== NAVIGATION =====
+function nextWord() { state.pos++; render(); }
+function prevWord() { state.pos--; render(); }
+
+function randomWord() {
+  const d = deck();
+  if (d.length > 1) {
+    let n;
+    do { n = Math.floor(Math.random() * d.length); } while (n === state.pos);
+    state.pos = n;
+  }
+  render();
 }
 
-// ===== stats =====
-function updateStats(){
- document.getElementById("correct").innerText=correct;
- document.getElementById("wrong").innerText=wrong;
-
- let total=correct+wrong;
- document.getElementById("accuracy").innerText=
-   (total?Math.round(correct/total*100):0)+"%";
+function shuffleDeck() {
+  const a = state.order;
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  state.pos = 0;
+  render();
 }
 
-// ===== reset =====
-function resetData(){
- location.reload();
+function setMode(m) {
+  state.mode = m;
+  state.pos = 0;
+  render();
 }
 
-// start
+// ===== LEARNING =====
+function markWrong() {
+  const c = current();
+  if (!c) return;
+  if (!state.weak.includes(c.word)) state.weak.push(c.word);
+  state.wrong++;
+  state.pos++;       // ไปคำถัดไปอัตโนมัติ
+  render();
+}
+
+function markCorrect() {
+  const c = current();
+  if (!c) return;
+  const wasWeakMode = state.mode === "weak";
+  state.weak = state.weak.filter(w => w !== c.word);
+  state.correct++;
+  // โหมด weak: คำที่จำได้จะหายจากลิสต์ ตำแหน่งเดิมจึงชี้ไปคำถัดไปอยู่แล้ว
+  if (!wasWeakMode) state.pos++;
+  render();
+}
+
+// ===== WEAK LIST =====
+function updateWeak() {
+  const box = $("weakList");
+  $("weakCount").innerText = state.weak.length;
+  box.innerHTML = "";
+
+  if (!state.weak.length) {
+    box.innerText = "ยังไม่มีคำที่จำไม่ได้";
+    return;
+  }
+
+  state.weak.forEach(w => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = w;
+    b.onclick = () => showWeak(w);
+    box.appendChild(b);
+  });
+}
+
+function showWeak(w) {
+  const c = WORDS.find(x => x.word === w);
+  if (!c) return;
+  $("word").innerText = c.word;
+  $("meaning").innerText = c.meaning;
+  $("example").innerText = c.example;
+  showMeaning(true);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ===== STATS =====
+function updateStats() {
+  $("correct").innerText = state.correct;
+  $("wrong").innerText = state.wrong;
+  const total = state.correct + state.wrong;
+  $("accuracy").innerText = (total ? Math.round(state.correct / total * 100) : 0) + "%";
+}
+
+// ===== SPEECH =====
+function speak() {
+  const text = $("word").innerText;
+  if (!("speechSynthesis" in window) || !current()) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+// ===== RESET =====
+function resetData() {
+  if (!confirm("ต้องการรีเซ็ตสถิติและคำที่จำไม่ได้ทั้งหมดหรือไม่?")) return;
+  state = {
+    weak: [], correct: 0, wrong: 0,
+    order: WORDS.map((_, i) => i), pos: 0, mode: "all"
+  };
+  render();
+}
+
+// ===== KEYBOARD =====
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "BUTTON" && e.key === " ") return; // ไม่ชนกับการกดปุ่ม
+  switch (e.key) {
+    case " ": e.preventDefault(); toggleMeaning(); break;
+    case "ArrowRight": nextWord(); break;
+    case "ArrowLeft": prevWord(); break;
+    case "k": case "K": markCorrect(); break;
+    case "j": case "J": markWrong(); break;
+    case "s": case "S": speak(); break;
+  }
+});
+
+$("card").addEventListener("keydown", e => {
+  if (e.key === "Enter") toggleMeaning();
+});
+
+// ===== START =====
+load();
 render();
 </script>
 
